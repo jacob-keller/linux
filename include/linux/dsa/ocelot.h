@@ -185,77 +185,77 @@ ocelot_8021q_tagger_data(struct dsa_switch *ds)
 
 static inline void ocelot_xfh_get_rew_val(void *extraction, u64 *rew_val)
 {
-	packing(extraction, rew_val, 116, 85, OCELOT_TAG_LEN, UNPACK, 0);
+	unpack(extraction, rew_val, 116, 85, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_xfh_get_len(void *extraction, u64 *len)
 {
 	u64 llen, wlen;
 
-	packing(extraction, &llen, 84, 79, OCELOT_TAG_LEN, UNPACK, 0);
-	packing(extraction, &wlen, 78, 71, OCELOT_TAG_LEN, UNPACK, 0);
+	unpack(extraction, &llen, 84, 79, OCELOT_TAG_LEN, 0);
+	unpack(extraction, &wlen, 78, 71, OCELOT_TAG_LEN, 0);
 
 	*len = 60 * wlen + llen - 80;
 }
 
 static inline void ocelot_xfh_get_src_port(void *extraction, u64 *src_port)
 {
-	packing(extraction, src_port, 46, 43, OCELOT_TAG_LEN, UNPACK, 0);
+	unpack(extraction, src_port, 46, 43, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_xfh_get_qos_class(void *extraction, u64 *qos_class)
 {
-	packing(extraction, qos_class, 19, 17, OCELOT_TAG_LEN, UNPACK, 0);
+	unpack(extraction, qos_class, 19, 17, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_xfh_get_tag_type(void *extraction, u64 *tag_type)
 {
-	packing(extraction, tag_type, 16, 16, OCELOT_TAG_LEN, UNPACK, 0);
+	unpack(extraction, tag_type, 16, 16, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_xfh_get_vlan_tci(void *extraction, u64 *vlan_tci)
 {
-	packing(extraction, vlan_tci, 15, 0, OCELOT_TAG_LEN, UNPACK, 0);
+	unpack(extraction, vlan_tci, 15, 0, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_bypass(void *injection, u64 bypass)
 {
-	packing(injection, &bypass, 127, 127, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, bypass, 127, 127, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_rew_op(void *injection, u64 rew_op)
 {
-	packing(injection, &rew_op, 125, 117, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, rew_op, 125, 117, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_dest(void *injection, u64 dest)
 {
-	packing(injection, &dest, 67, 56, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, dest, 67, 56, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_qos_class(void *injection, u64 qos_class)
 {
-	packing(injection, &qos_class, 19, 17, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, qos_class, 19, 17, OCELOT_TAG_LEN, 0);
 }
 
 static inline void seville_ifh_set_dest(void *injection, u64 dest)
 {
-	packing(injection, &dest, 67, 57, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, dest, 67, 57, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_src(void *injection, u64 src)
 {
-	packing(injection, &src, 46, 43, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, src, 46, 43, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_tag_type(void *injection, u64 tag_type)
 {
-	packing(injection, &tag_type, 16, 16, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, tag_type, 16, 16, OCELOT_TAG_LEN, 0);
 }
 
 static inline void ocelot_ifh_set_vlan_tci(void *injection, u64 vlan_tci)
 {
-	packing(injection, &vlan_tci, 15, 0, OCELOT_TAG_LEN, PACK, 0);
+	pack(injection, vlan_tci, 15, 0, OCELOT_TAG_LEN, 0);
 }
 
 /* Determine the PTP REW_OP to use for injecting the given skb */
