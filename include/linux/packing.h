@@ -12,14 +12,6 @@
 #define QUIRK_LITTLE_ENDIAN	BIT(1)
 #define QUIRK_LSW32_IS_FIRST	BIT(2)
 
-enum packing_op {
-	PACK,
-	UNPACK,
-};
-
-int packing(void *pbuf, u64 *uval, int startbit, int endbit, size_t pbuflen,
-	    enum packing_op op, u8 quirks);
-
 int pack(void *pbuf, u64 uval, size_t startbit, size_t endbit, size_t pbuflen,
 	 u8 quirks);
 

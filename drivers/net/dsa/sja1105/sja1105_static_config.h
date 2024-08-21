@@ -53,6 +53,11 @@
 #define SJA1105PQRS_SIZE_CBS_ENTRY			20
 #define SJA1110_SIZE_PCP_REMAPPING_ENTRY		4
 
+enum packing_op {
+	PACK,
+	UNPACK,
+};
+
 /* UM10944.pdf Page 11, Table 2. Configuration Blocks */
 enum {
 	BLKID_SCHEDULE					= 0x00,
