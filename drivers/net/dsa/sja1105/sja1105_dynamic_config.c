@@ -439,11 +439,11 @@ sja1105et_mgmt_route_cmd_packing(void *buf, struct sja1105_dyn_cmd *cmd,
 				 enum packing_op op)
 {
 	u8 *p = buf + SJA1105ET_SIZE_L2_LOOKUP_ENTRY;
-	u64 mgmtroute = 1;
 
 	sja1105et_l2_lookup_cmd_packing(buf, cmd, op);
+	/* Set MGMTROUTE bit */
 	if (op == PACK)
-		sja1105_pack(p, &mgmtroute, 26, 26, SJA1105_SIZE_DYN_CMD);
+		sja1105_pack(p, 1, 26, 26, SJA1105_SIZE_DYN_CMD);
 }
 
 static size_t sja1105et_mgmt_route_entry_packing(void *buf, void *entry_ptr,
@@ -471,11 +471,11 @@ sja1105pqrs_mgmt_route_cmd_packing(void *buf, struct sja1105_dyn_cmd *cmd,
 				   enum packing_op op)
 {
 	u8 *p = buf + SJA1105PQRS_SIZE_L2_LOOKUP_ENTRY;
-	u64 mgmtroute = 1;
 
 	sja1105pqrs_l2_lookup_cmd_packing(buf, cmd, op);
+	/* Set MGMTROUTE bit */
 	if (op == PACK)
-		sja1105_pack(p, &mgmtroute, 26, 26, SJA1105_SIZE_DYN_CMD);
+		sja1105_pack(p, 1, 26, 26, SJA1105_SIZE_DYN_CMD);
 }
 
 static size_t sja1105pqrs_mgmt_route_entry_packing(void *buf, void *entry_ptr,

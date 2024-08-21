@@ -20,9 +20,9 @@ sja1105_spi_message_pack(void *buf, const struct sja1105_spi_message *msg)
 
 	memset(buf, 0, size);
 
-	sja1105_pack(buf, &msg->access,     31, 31, size);
-	sja1105_pack(buf, &msg->read_count, 30, 25, size);
-	sja1105_pack(buf, &msg->address,    24,  4, size);
+	sja1105_pack(buf, msg->access,     31, 31, size);
+	sja1105_pack(buf, msg->read_count, 30, 25, size);
+	sja1105_pack(buf, msg->address,    24,  4, size);
 }
 
 /* If @rw is:
@@ -136,7 +136,7 @@ int sja1105_xfer_u64(const struct sja1105_private *priv,
 	int rc;
 
 	if (rw == SPI_WRITE)
-		sja1105_pack(packed_buf, value, 63, 0, 8);
+		sja1105_pack(packed_buf, *value, 63, 0, 8);
 
 	rc = sja1105_xfer(priv, rw, reg_addr, packed_buf, 8, ptp_sts);
 
@@ -155,13 +155,8 @@ int sja1105_xfer_u32(const struct sja1105_private *priv,
 	u64 tmp;
 	int rc;
 
-	if (rw == SPI_WRITE) {
-		/* The packing API only supports u64 as CPU word size,
-		 * so we need to convert.
-		 */
-		tmp = *value;
-		sja1105_pack(packed_buf, &tmp, 31, 0, 4);
-	}
+	if (rw == SPI_WRITE)
+		sja1105_pack(packed_buf, *value, 31, 0, 4);
 
 	rc = sja1105_xfer(priv, rw, reg_addr, packed_buf, 4, ptp_sts);
 

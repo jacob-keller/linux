@@ -14,9 +14,9 @@
  * to occur durring runtime, therefore printing and swallowing them here is
  * appropriate instead of clutterring up higher-level code.
  */
-void sja1105_pack(void *buf, const u64 *val, int start, int end, size_t len)
+void sja1105_pack(void *buf, u64 val, int start, int end, size_t len)
 {
-	int rc = pack(buf, *val, start, end, len, QUIRK_LSW32_IS_FIRST);
+	int rc = pack(buf, val, start, end, len, QUIRK_LSW32_IS_FIRST);
 
 	if (likely(!rc))
 		return;
@@ -30,7 +30,7 @@ void sja1105_pack(void *buf, const u64 *val, int start, int end, size_t len)
 			       start, end);
 		else
 			pr_err("Cannot store %llx inside bits %d-%d (would truncate)\n",
-			       *val, start, end);
+			       val, start, end);
 	}
 	dump_stack();
 }
@@ -55,7 +55,7 @@ void sja1105_packing(void *buf, u64 *val, int start, int end,
 		     size_t len, enum packing_op op)
 {
 	if (op == PACK)
-		sja1105_pack(buf, val, start, end, len);
+		sja1105_pack(buf, *val, start, end, len);
 	else
 		sja1105_unpack(buf, val, start, end, len);
 }
@@ -904,9 +904,9 @@ size_t sja1105_table_header_pack(void *buf, const void *entry_ptr)
 	const struct sja1105_table_header *entry = entry_ptr;
 	const size_t size = SJA1105_SIZE_TABLE_HEADER;
 
-	sja1105_pack(buf, &entry->block_id, 31, 24, size);
-	sja1105_pack(buf, &entry->len,      55, 32, size);
-	sja1105_pack(buf, &entry->crc,      95, 64, size);
+	sja1105_pack(buf, entry->block_id, 31, 24, size);
+	sja1105_pack(buf, entry->len,      55, 32, size);
+	sja1105_pack(buf, entry->crc,      95, 64, size);
 	return size;
 }
 
@@ -933,7 +933,7 @@ sja1105_table_header_pack_with_crc(void *buf, struct sja1105_table_header *hdr)
 	memset(buf, 0, SJA1105_SIZE_TABLE_HEADER);
 	sja1105_table_header_pack(buf, hdr);
 	hdr->crc = sja1105_crc32(buf, SJA1105_SIZE_TABLE_HEADER - 4);
-	sja1105_pack(buf + SJA1105_SIZE_TABLE_HEADER - 4, &hdr->crc, 31, 0, 4);
+	sja1105_pack(buf + SJA1105_SIZE_TABLE_HEADER - 4, hdr->crc, 31, 0, 4);
 }
 
 static void sja1105_table_write_crc(u8 *table_start, u8 *crc_ptr)
@@ -943,7 +943,7 @@ static void sja1105_table_write_crc(u8 *table_start, u8 *crc_ptr)
 
 	len_bytes = (uintptr_t)(crc_ptr - table_start);
 	computed_crc = sja1105_crc32(table_start, len_bytes);
-	sja1105_pack(crc_ptr, &computed_crc, 31, 0, 4);
+	sja1105_pack(crc_ptr, computed_crc, 31, 0, 4);
 }
 
 /* The block IDs that the switches support are unfortunately sparse, so keep a
@@ -1119,7 +1119,7 @@ sja1105_static_config_pack(void *buf, struct sja1105_static_config *config)
 	char *p = buf;
 	int j;
 
-	sja1105_pack(p, &config->device_id, 31, 0, 4);
+	sja1105_pack(p, config->device_id, 31, 0, 4);
 	p += SJA1105_SIZE_DEVICE_ID;
 
 	for (i = 0; i < BLK_IDX_MAX; i++) {

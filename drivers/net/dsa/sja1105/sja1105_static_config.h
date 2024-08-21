@@ -500,7 +500,7 @@ int sja1105_table_resize(struct sja1105_table *table, size_t new_count);
 
 u32 sja1105_crc32(const void *buf, size_t len);
 
-void sja1105_pack(void *buf, const u64 *val, int start, int end, size_t len);
+void sja1105_pack(void *buf, u64 val, int start, int end, size_t len);
 void sja1105_unpack(const void *buf, u64 *val, int start, int end, size_t len);
 void sja1105_packing(void *buf, u64 *val, int start, int end,
 		     size_t len, enum packing_op op);
