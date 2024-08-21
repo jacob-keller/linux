@@ -112,11 +112,16 @@ static int sja1105_xfer(const struct sja1105_private *priv,
 	return 0;
 }
 
-int sja1105_xfer_buf(const struct sja1105_private *priv,
-		     sja1105_spi_rw_mode_t rw, u64 reg_addr,
-		     u8 *buf, size_t len)
+int sja1105_read_buf(const struct sja1105_private *priv, u64 reg_addr, u8 *buf,
+		     size_t len)
 {
-	return sja1105_xfer(priv, rw, reg_addr, buf, len, NULL);
+	return sja1105_xfer(priv, SPI_READ, reg_addr, buf, len, NULL);
+}
+
+int sja1105_write_buf(const struct sja1105_private *priv, u64 reg_addr,
+		      const u8 *buf, size_t len)
+{
+	return sja1105_xfer(priv, SPI_WRITE, reg_addr, (u8 *)buf, len, NULL);
 }
 
 int sja1105_read_u64(const struct sja1105_private *priv, u64 reg_addr,
@@ -256,7 +261,7 @@ static int sja1105_status_get(struct sja1105_private *priv,
 	u8 packed_buf[4];
 	int rc;
 
-	rc = sja1105_xfer_buf(priv, SPI_READ, regs->status, packed_buf, 4);
+	rc = sja1105_read_buf(priv, regs->status, packed_buf, 4);
 	if (rc < 0)
 		return rc;
 
@@ -352,8 +357,7 @@ int sja1105_static_config_upload(struct sja1105_private *priv)
 		/* Wait for the switch to come out of reset */
 		usleep_range(1000, 5000);
 		/* Upload the static config to the device */
-		rc = sja1105_xfer_buf(priv, SPI_WRITE, regs->config,
-				      config_buf, buf_len);
+		rc = sja1105_write_buf(priv, regs->config, config_buf, buf_len);
 		if (rc < 0) {
 			dev_err(dev, "Failed to upload config, retrying...\n");
 			continue;

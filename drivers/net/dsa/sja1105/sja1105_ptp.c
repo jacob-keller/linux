@@ -172,7 +172,7 @@ int sja1105_ptp_cmd_read(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd)
 	u8 buf[SJA1105_SIZE_PTP_CMD] = {0};
 	int rc;
 
-	rc = sja1105_xfer_buf(priv, SPI_READ, regs->ptp_control, buf,
+	rc = sja1105_read_buf(priv, regs->ptp_control, buf,
 			      SJA1105_SIZE_PTP_CMD);
 	if (rc)
 		return rc;
@@ -191,8 +191,8 @@ int sja1105_ptp_cmd_write(struct dsa_switch *ds,
 
 	priv->info->ptp_cmd_packing(buf, (struct sja1105_ptp_cmd *)cmd, PACK);
 
-	return sja1105_xfer_buf(priv, SPI_WRITE, regs->ptp_control, buf,
-			      SJA1105_SIZE_PTP_CMD);
+	return sja1105_write_buf(priv, regs->ptp_control, buf,
+				 SJA1105_SIZE_PTP_CMD);
 }
 
 /* The switch returns partial timestamps (24 bits for SJA1105 E/T, which wrap
@@ -265,8 +265,8 @@ static int sja1105_ptpegr_ts_poll(struct dsa_switch *ds, int port, u64 *ts)
 	int rc;
 
 	do {
-		rc = sja1105_xfer_buf(priv, SPI_READ, regs->ptpegr_ts[port],
-				      packed_buf, priv->info->ptpegr_ts_bytes);
+		rc = sja1105_read_buf(priv, regs->ptpegr_ts[port], packed_buf,
+				      priv->info->ptpegr_ts_bytes);
 		if (rc < 0)
 			return rc;
 

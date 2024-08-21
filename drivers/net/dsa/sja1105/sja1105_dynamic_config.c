@@ -1184,8 +1184,7 @@ sja1105_dynamic_config_poll_valid(struct sja1105_private *priv,
 	int rc;
 
 	/* Read back the whole entry + command structure. */
-	rc = sja1105_xfer_buf(priv, SPI_READ, ops->addr, packed_buf,
-			      ops->packed_size);
+	rc = sja1105_read_buf(priv, ops->addr, packed_buf, ops->packed_size);
 	if (rc)
 		return rc;
 
@@ -1298,8 +1297,7 @@ int sja1105_dynamic_config_read(struct sja1105_private *priv,
 
 	/* Send SPI write operation: read config table entry */
 	mutex_lock(&priv->dynamic_config_lock);
-	rc = sja1105_xfer_buf(priv, SPI_WRITE, ops->addr, packed_buf,
-			      ops->packed_size);
+	rc = sja1105_write_buf(priv, ops->addr, packed_buf, ops->packed_size);
 	if (rc < 0)
 		goto out;
 
@@ -1357,8 +1355,7 @@ int sja1105_dynamic_config_write(struct sja1105_private *priv,
 
 	/* Send SPI write operation: read config table entry */
 	mutex_lock(&priv->dynamic_config_lock);
-	rc = sja1105_xfer_buf(priv, SPI_WRITE, ops->addr, packed_buf,
-			      ops->packed_size);
+	rc = sja1105_write_buf(priv, ops->addr, packed_buf, ops->packed_size);
 	if (rc < 0)
 		goto out;
 

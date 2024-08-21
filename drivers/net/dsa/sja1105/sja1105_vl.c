@@ -778,7 +778,7 @@ int sja1105_vl_stats(struct sja1105_private *priv, int port,
 	if (vlid < 0)
 		return 0;
 
-	rc = sja1105_xfer_buf(priv, SPI_READ, regs->vl_status + 2 * vlid, buf,
+	rc = sja1105_read_buf(priv, regs->vl_status + 2 * vlid, buf,
 			      SJA1105_SIZE_VL_STATUS);
 	if (rc) {
 		NL_SET_ERR_MSG_MOD(extack, "SPI access failed");

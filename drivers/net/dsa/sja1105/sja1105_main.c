@@ -3269,7 +3269,7 @@ static int sja1105_check_device_id(struct sja1105_private *priv)
 	if (rc < 0)
 		return rc;
 
-	rc = sja1105_xfer_buf(priv, SPI_READ, regs->prod_id, prod_id,
+	rc = sja1105_read_buf(priv, regs->prod_id, prod_id,
 			      SJA1105_SIZE_DEVICE_ID);
 	if (rc < 0)
 		return rc;

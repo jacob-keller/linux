@@ -324,9 +324,10 @@ int sja1105_devlink_info_get(struct dsa_switch *ds,
 			     struct netlink_ext_ack *extack);
 
 /* From sja1105_spi.c */
-int sja1105_xfer_buf(const struct sja1105_private *priv,
-		     sja1105_spi_rw_mode_t rw, u64 reg_addr,
-		     u8 *buf, size_t len);
+int sja1105_read_buf(const struct sja1105_private *priv, u64 reg_addr, u8 *buf,
+		     size_t len);
+int sja1105_write_buf(const struct sja1105_private *priv, u64 reg_addr,
+		      const u8 *buf, size_t len);
 int sja1105_read_u64(const struct sja1105_private *priv, u64 reg_addr,
 		     u64 *value, struct ptp_system_timestamp *ptp_sts);
 int sja1105_write_u64(const struct sja1105_private *priv, u64 reg_addr,

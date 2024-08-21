@@ -549,7 +549,7 @@ static int sja1105_port_counter_read(struct sja1105_private *priv, int port,
 
 	regs = priv->info->regs->stats[c->area][port];
 
-	rc = sja1105_xfer_buf(priv, SPI_READ, regs + c->offset, buf, size);
+	rc = sja1105_read_buf(priv, regs + c->offset, buf, size);
 	if (rc)
 		return rc;
 
