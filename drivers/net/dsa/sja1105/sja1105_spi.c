@@ -119,87 +119,87 @@ int sja1105_xfer_buf(const struct sja1105_private *priv,
 	return sja1105_xfer(priv, rw, reg_addr, buf, len, NULL);
 }
 
-/* If @rw is:
- * - SPI_WRITE: creates and sends an SPI write message at absolute
- *		address reg_addr
- * - SPI_READ:  creates and sends an SPI read message from absolute
- *		address reg_addr
- *
- * The u64 *value is unpacked, meaning that it's stored in the native
- * CPU endianness and directly usable by software running on the core.
- */
-int sja1105_xfer_u64(const struct sja1105_private *priv,
-		     sja1105_spi_rw_mode_t rw, u64 reg_addr, u64 *value,
-		     struct ptp_system_timestamp *ptp_sts)
+int sja1105_read_u64(const struct sja1105_private *priv, u64 reg_addr,
+		     u64 *value, struct ptp_system_timestamp *ptp_sts)
 {
 	u8 packed_buf[8];
 	int rc;
 
-	if (rw == SPI_WRITE)
-		sja1105_pack(packed_buf, *value, 63, 0, 8);
+	rc = sja1105_xfer(priv, SPI_READ, reg_addr, packed_buf, 8, ptp_sts);
+	if (rc)
+		return rc;
 
-	rc = sja1105_xfer(priv, rw, reg_addr, packed_buf, 8, ptp_sts);
+	sja1105_unpack(packed_buf, value, 63, 0, 8);
 
-	if (rw == SPI_READ)
-		sja1105_unpack(packed_buf, value, 63, 0, 8);
-
-	return rc;
+	return 0;
 }
 
-/* Same as above, but transfers only a 4 byte word */
-int sja1105_xfer_u32(const struct sja1105_private *priv,
-		     sja1105_spi_rw_mode_t rw, u64 reg_addr, u32 *value,
-		     struct ptp_system_timestamp *ptp_sts)
+int sja1105_write_u64(const struct sja1105_private *priv, u64 reg_addr,
+		      u64 value, struct ptp_system_timestamp *ptp_sts)
+{
+	u8 packed_buf[8];
+
+	sja1105_pack(packed_buf, value, 63, 0, 8);
+
+	return sja1105_xfer(priv, SPI_WRITE, reg_addr, packed_buf, 8, ptp_sts);
+}
+
+int sja1105_read_u32(const struct sja1105_private *priv, u64 reg_addr,
+		     u32 *value, struct ptp_system_timestamp *ptp_sts)
 {
 	u8 packed_buf[4];
 	u64 tmp;
 	int rc;
 
-	if (rw == SPI_WRITE)
-		sja1105_pack(packed_buf, *value, 31, 0, 4);
+	rc = sja1105_xfer(priv, SPI_READ, reg_addr, packed_buf, 4, ptp_sts);
+	if (rc)
+		return rc;
 
-	rc = sja1105_xfer(priv, rw, reg_addr, packed_buf, 4, ptp_sts);
+	sja1105_unpack(packed_buf, &tmp, 31, 0, 4);
+	*value = tmp;
 
-	if (rw == SPI_READ) {
-		sja1105_unpack(packed_buf, &tmp, 31, 0, 4);
-		*value = tmp;
-	}
+	return 0;
+}
 
-	return rc;
+int sja1105_write_u32(const struct sja1105_private *priv, u64 reg_addr,
+		      u32 value, struct ptp_system_timestamp *ptp_sts)
+{
+	u8 packed_buf[4];
+
+	sja1105_pack(packed_buf, value, 31, 0, 4);
+
+	return sja1105_xfer(priv, SPI_WRITE, reg_addr, packed_buf, 4, ptp_sts);
 }
 
 static int sja1105et_reset_cmd(struct dsa_switch *ds)
 {
 	struct sja1105_private *priv = ds->priv;
 	const struct sja1105_regs *regs = priv->info->regs;
-	u32 cold_reset = BIT(3);
 
 	/* Cold reset */
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->rgu, &cold_reset, NULL);
+	return sja1105_write_u32(priv, regs->rgu, BIT(3), NULL);
 }
 
 static int sja1105pqrs_reset_cmd(struct dsa_switch *ds)
 {
 	struct sja1105_private *priv = ds->priv;
 	const struct sja1105_regs *regs = priv->info->regs;
-	u32 cold_reset = BIT(2);
 
 	/* Cold reset */
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->rgu, &cold_reset, NULL);
+	return sja1105_write_u32(priv, regs->rgu, BIT(2), NULL);
 }
 
 static int sja1110_reset_cmd(struct dsa_switch *ds)
 {
 	struct sja1105_private *priv = ds->priv;
 	const struct sja1105_regs *regs = priv->info->regs;
-	u32 switch_reset = BIT(20);
 
 	/* Only reset the switch core.
 	 * A full cold reset would re-enable the BASE_MCSS_CLOCK PLL which
 	 * would turn on the microcontroller, potentially letting it execute
 	 * code which could interfere with our configuration.
 	 */
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->rgu, &switch_reset, NULL);
+	return sja1105_write_u32(priv, regs->rgu, BIT(20), NULL);
 }
 
 int sja1105_inhibit_tx(const struct sja1105_private *priv,
@@ -209,8 +209,7 @@ int sja1105_inhibit_tx(const struct sja1105_private *priv,
 	u32 inhibit_cmd;
 	int rc;
 
-	rc = sja1105_xfer_u32(priv, SPI_READ, regs->port_control,
-			      &inhibit_cmd, NULL);
+	rc = sja1105_read_u32(priv, regs->port_control, &inhibit_cmd, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -219,8 +218,7 @@ int sja1105_inhibit_tx(const struct sja1105_private *priv,
 	else
 		inhibit_cmd &= ~port_bitmap;
 
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->port_control,
-				&inhibit_cmd, NULL);
+	return sja1105_write_u32(priv, regs->port_control, inhibit_cmd, NULL);
 }
 
 struct sja1105_status {

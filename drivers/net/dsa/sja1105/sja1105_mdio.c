@@ -25,7 +25,7 @@ int sja1105_pcs_mdio_read_c45(struct mii_bus *bus, int phy, int mmd, int reg)
 	if (mmd == MDIO_MMD_VEND2 && (reg & GENMASK(15, 0)) == MII_PHYSID2)
 		return NXP_SJA1105_XPCS_ID & GENMASK(15, 0);
 
-	rc = sja1105_xfer_u32(priv, SPI_READ, addr, &tmp, NULL);
+	rc = sja1105_read_u32(priv, addr, &tmp, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -38,15 +38,13 @@ int sja1105_pcs_mdio_write_c45(struct mii_bus *bus, int phy, int mmd,
 	struct sja1105_mdio_private *mdio_priv = bus->priv;
 	struct sja1105_private *priv = mdio_priv->priv;
 	u64 addr;
-	u32 tmp;
 
 	addr = (mmd << 16) | reg;
-	tmp = val;
 
 	if (mmd != MDIO_MMD_VEND1 && mmd != MDIO_MMD_VEND2)
 		return -EINVAL;
 
-	return sja1105_xfer_u32(priv, SPI_WRITE, addr, &tmp, NULL);
+	return sja1105_write_u32(priv, addr, val, NULL);
 }
 
 int sja1110_pcs_mdio_read_c45(struct mii_bus *bus, int phy, int mmd, int reg)
@@ -78,16 +76,12 @@ int sja1110_pcs_mdio_read_c45(struct mii_bus *bus, int phy, int mmd, int reg)
 	if (WARN_ON(offset == 0xff))
 		return -ENODEV;
 
-	tmp = bank;
-
-	rc = sja1105_xfer_u32(priv, SPI_WRITE,
-			      regs->pcs_base[phy] + SJA1110_PCS_BANK_REG,
-			      &tmp, NULL);
+	rc = sja1105_write_u32(priv, regs->pcs_base[phy] + SJA1110_PCS_BANK_REG,
+			       bank, NULL);
 	if (rc < 0)
 		return rc;
 
-	rc = sja1105_xfer_u32(priv, SPI_READ, regs->pcs_base[phy] + offset,
-			      &tmp, NULL);
+	rc = sja1105_read_u32(priv, regs->pcs_base[phy] + offset, &tmp, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -102,7 +96,6 @@ int sja1110_pcs_mdio_write_c45(struct mii_bus *bus, int phy, int mmd, int reg,
 	const struct sja1105_regs *regs = priv->info->regs;
 	int offset, bank;
 	u64 addr;
-	u32 tmp;
 	int rc;
 
 	if (regs->pcs_base[phy] == SJA1105_RSV_ADDR)
@@ -119,18 +112,12 @@ int sja1110_pcs_mdio_write_c45(struct mii_bus *bus, int phy, int mmd, int reg,
 	if (WARN_ON(offset == 0xff))
 		return -ENODEV;
 
-	tmp = bank;
-
-	rc = sja1105_xfer_u32(priv, SPI_WRITE,
-			      regs->pcs_base[phy] + SJA1110_PCS_BANK_REG,
-			      &tmp, NULL);
+	rc = sja1105_write_u32(priv, regs->pcs_base[phy] + SJA1110_PCS_BANK_REG,
+			       bank, NULL);
 	if (rc < 0)
 		return rc;
 
-	tmp = val;
-
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->pcs_base[phy] + offset,
-				&tmp, NULL);
+	return sja1105_write_u32(priv, regs->pcs_base[phy] + offset, val, NULL);
 }
 
 enum sja1105_mdio_opcode {
@@ -159,7 +146,7 @@ static int sja1105_base_t1_mdio_read_c22(struct mii_bus *bus, int phy, int reg)
 
 	addr = sja1105_base_t1_encode_addr(priv, phy, SJA1105_C22, reg & 0x1f);
 
-	rc = sja1105_xfer_u32(priv, SPI_READ, addr, &tmp, NULL);
+	rc = sja1105_read_u32(priv, addr, &tmp, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -177,13 +164,13 @@ static int sja1105_base_t1_mdio_read_c45(struct mii_bus *bus, int phy,
 
 	addr = sja1105_base_t1_encode_addr(priv, phy, SJA1105_C45_ADDR, mmd);
 
-	rc = sja1105_xfer_u32(priv, SPI_WRITE, addr, &reg, NULL);
+	rc = sja1105_write_u32(priv, addr, reg, NULL);
 	if (rc < 0)
 		return rc;
 
 	addr = sja1105_base_t1_encode_addr(priv, phy, SJA1105_C45_DATA, mmd);
 
-	rc = sja1105_xfer_u32(priv, SPI_READ, addr, &tmp, NULL);
+	rc = sja1105_read_u32(priv, addr, &tmp, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -196,13 +183,10 @@ static int sja1105_base_t1_mdio_write_c22(struct mii_bus *bus, int phy, int reg,
 	struct sja1105_mdio_private *mdio_priv = bus->priv;
 	struct sja1105_private *priv = mdio_priv->priv;
 	u64 addr;
-	u32 tmp;
 
 	addr = sja1105_base_t1_encode_addr(priv, phy, SJA1105_C22, reg & 0x1f);
 
-	tmp = val & 0xffff;
-
-	return sja1105_xfer_u32(priv, SPI_WRITE, addr, &tmp, NULL);
+	return sja1105_write_u32(priv, addr, val, NULL);
 }
 
 static int sja1105_base_t1_mdio_write_c45(struct mii_bus *bus, int phy,
@@ -211,20 +195,17 @@ static int sja1105_base_t1_mdio_write_c45(struct mii_bus *bus, int phy,
 	struct sja1105_mdio_private *mdio_priv = bus->priv;
 	struct sja1105_private *priv = mdio_priv->priv;
 	u64 addr;
-	u32 tmp;
 	int rc;
 
 	addr = sja1105_base_t1_encode_addr(priv, phy, SJA1105_C45_ADDR, mmd);
 
-	rc = sja1105_xfer_u32(priv, SPI_WRITE, addr, &reg, NULL);
+	rc = sja1105_write_u32(priv, addr, reg, NULL);
 	if (rc < 0)
 		return rc;
 
 	addr = sja1105_base_t1_encode_addr(priv, phy, SJA1105_C45_DATA, mmd);
 
-	tmp = val & 0xffff;
-
-	return sja1105_xfer_u32(priv, SPI_WRITE, addr, &tmp, NULL);
+	return sja1105_write_u32(priv, addr, val, NULL);
 }
 
 static int sja1105_base_tx_mdio_read(struct mii_bus *bus, int phy, int reg)
@@ -235,8 +216,7 @@ static int sja1105_base_tx_mdio_read(struct mii_bus *bus, int phy, int reg)
 	u32 tmp;
 	int rc;
 
-	rc = sja1105_xfer_u32(priv, SPI_READ, regs->mdio_100base_tx + reg,
-			      &tmp, NULL);
+	rc = sja1105_read_u32(priv, regs->mdio_100base_tx + reg, &tmp, NULL);
 	if (rc < 0)
 		return rc;
 
@@ -249,10 +229,8 @@ static int sja1105_base_tx_mdio_write(struct mii_bus *bus, int phy, int reg,
 	struct sja1105_mdio_private *mdio_priv = bus->priv;
 	struct sja1105_private *priv = mdio_priv->priv;
 	const struct sja1105_regs *regs = priv->info->regs;
-	u32 tmp = val;
 
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->mdio_100base_tx + reg,
-				&tmp, NULL);
+	return sja1105_write_u32(priv, regs->mdio_100base_tx + reg, val, NULL);
 }
 
 static int sja1105_mdiobus_base_tx_register(struct sja1105_private *priv,

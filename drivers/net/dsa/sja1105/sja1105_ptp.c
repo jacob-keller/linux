@@ -295,8 +295,7 @@ static int sja1105_ptpclkval_read(struct sja1105_private *priv, u64 *ticks,
 {
 	const struct sja1105_regs *regs = priv->info->regs;
 
-	return sja1105_xfer_u64(priv, SPI_READ, regs->ptpclkval, ticks,
-				ptp_sts);
+	return sja1105_read_u64(priv, regs->ptpclkval, ticks, ptp_sts);
 }
 
 /* Caller must hold ptp_data->lock */
@@ -305,8 +304,7 @@ static int sja1105_ptpclkval_write(struct sja1105_private *priv, u64 ticks,
 {
 	const struct sja1105_regs *regs = priv->info->regs;
 
-	return sja1105_xfer_u64(priv, SPI_WRITE, regs->ptpclkval, &ticks,
-				ptp_sts);
+	return sja1105_write_u64(priv, regs->ptpclkval, ticks, ptp_sts);
 }
 
 static void sja1105_extts_poll(struct sja1105_private *priv)
@@ -317,8 +315,7 @@ static void sja1105_extts_poll(struct sja1105_private *priv)
 	u64 ptpsyncts = 0;
 	int rc;
 
-	rc = sja1105_xfer_u64(priv, SPI_READ, regs->ptpsyncts, &ptpsyncts,
-			      NULL);
+	rc = sja1105_read_u64(priv, regs->ptpsyncts, &ptpsyncts, NULL);
 	if (rc < 0)
 		dev_err_ratelimited(priv->ds->dev,
 				    "Failed to read PTPSYNCTS: %d\n", rc);
@@ -607,7 +604,6 @@ static int sja1105_ptp_adjfine(struct ptp_clock_info *ptp, long scaled_ppm)
 	struct sja1105_ptp_data *ptp_data = ptp_caps_to_data(ptp);
 	struct sja1105_private *priv = ptp_data_to_sja1105(ptp_data);
 	const struct sja1105_regs *regs = priv->info->regs;
-	u32 clkrate32;
 	s64 clkrate;
 	int rc;
 
@@ -617,12 +613,10 @@ static int sja1105_ptp_adjfine(struct ptp_clock_info *ptp, long scaled_ppm)
 	/* Take a +/- value and re-center it around 2^31. */
 	clkrate = SJA1105_CC_MULT + clkrate;
 	WARN_ON(abs(clkrate) >= GENMASK_ULL(31, 0));
-	clkrate32 = clkrate;
 
 	mutex_lock(&ptp_data->lock);
 
-	rc = sja1105_xfer_u32(priv, SPI_WRITE, regs->ptpclkrate, &clkrate32,
-			      NULL);
+	rc = sja1105_write_u32(priv, regs->ptpclkrate, clkrate, NULL);
 
 	sja1105_tas_adjfreq(priv->ds);
 
@@ -748,7 +742,6 @@ static int sja1105_per_out_enable(struct sja1105_private *priv,
 		};
 		u64 pin_duration = timespec64_to_ns(&pin_duration_ts);
 		u64 pin_start = timespec64_to_ns(&pin_start_ts);
-		u32 pin_duration32;
 		u64 now;
 
 		/* ptppindur: 32 bit register which holds the interval between
@@ -760,7 +753,6 @@ static int sja1105_per_out_enable(struct sja1105_private *priv,
 			rc = -ERANGE;
 			goto out;
 		}
-		pin_duration32 = pin_duration;
 
 		/* ptppins: 64 bit register which needs to hold a PTP time
 		 * larger than the current time, otherwise the startptpcp
@@ -776,13 +768,12 @@ static int sja1105_per_out_enable(struct sja1105_private *priv,
 					     now + 1ull * NSEC_PER_SEC);
 		pin_start = ns_to_sja1105_ticks(pin_start);
 
-		rc = sja1105_xfer_u64(priv, SPI_WRITE, regs->ptppinst,
-				      &pin_start, NULL);
+		rc = sja1105_write_u64(priv, regs->ptppinst, pin_start, NULL);
 		if (rc < 0)
 			goto out;
 
-		rc = sja1105_xfer_u32(priv, SPI_WRITE, regs->ptppindur,
-				      &pin_duration32, NULL);
+		rc = sja1105_write_u32(priv, regs->ptppindur, pin_duration,
+				       NULL);
 		if (rc < 0)
 			goto out;
 	}

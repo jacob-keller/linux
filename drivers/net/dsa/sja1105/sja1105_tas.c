@@ -610,10 +610,9 @@ static int sja1105_tas_adjust_drift(struct sja1105_private *priv,
 				    u64 correction)
 {
 	const struct sja1105_regs *regs = priv->info->regs;
-	u32 ptpclkcorp = ns_to_sja1105_ticks(correction);
 
-	return sja1105_xfer_u32(priv, SPI_WRITE, regs->ptpclkcorp,
-				&ptpclkcorp, NULL);
+	return sja1105_write_u32(priv, regs->ptpclkcorp,
+				 ns_to_sja1105_ticks(correction), NULL);
 }
 
 /* Write to PTPSCHTM */
@@ -621,10 +620,9 @@ static int sja1105_tas_set_base_time(struct sja1105_private *priv,
 				     u64 base_time)
 {
 	const struct sja1105_regs *regs = priv->info->regs;
-	u64 ptpschtm = ns_to_sja1105_ticks(base_time);
 
-	return sja1105_xfer_u64(priv, SPI_WRITE, regs->ptpschtm,
-				&ptpschtm, NULL);
+	return sja1105_write_u64(priv, regs->ptpschtm,
+				 ns_to_sja1105_ticks(base_time), NULL);
 }
 
 static int sja1105_tas_start(struct sja1105_private *priv)
