@@ -456,7 +456,8 @@ extern const struct sja1105_table_ops sja1105r_table_ops[BLK_IDX_MAX];
 extern const struct sja1105_table_ops sja1105s_table_ops[BLK_IDX_MAX];
 extern const struct sja1105_table_ops sja1110_table_ops[BLK_IDX_MAX];
 
-size_t sja1105_table_header_packing(void *buf, void *hdr, enum packing_op op);
+size_t sja1105_table_header_pack(void *buf, const void *hdr);
+size_t sja1105_table_header_unpack(const void *buf, void *hdr);
 void
 sja1105_table_header_pack_with_crc(void *buf, struct sja1105_table_header *hdr);
 size_t

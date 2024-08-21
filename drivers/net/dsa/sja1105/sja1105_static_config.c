@@ -914,15 +914,25 @@ static size_t sja1110_pcp_remapping_entry_packing(void *buf, void *entry_ptr,
 	return size;
 }
 
-size_t sja1105_table_header_packing(void *buf, void *entry_ptr,
-				    enum packing_op op)
+size_t sja1105_table_header_pack(void *buf, const void *entry_ptr)
+{
+	const struct sja1105_table_header *entry = entry_ptr;
+	const size_t size = SJA1105_SIZE_TABLE_HEADER;
+
+	sja1105_pack(buf, &entry->block_id, 31, 24, size);
+	sja1105_pack(buf, &entry->len,      55, 32, size);
+	sja1105_pack(buf, &entry->crc,      95, 64, size);
+	return size;
+}
+
+size_t sja1105_table_header_unpack(const void *buf, void *entry_ptr)
 {
 	const size_t size = SJA1105_SIZE_TABLE_HEADER;
 	struct sja1105_table_header *entry = entry_ptr;
 
-	sja1105_packing(buf, &entry->block_id, 31, 24, size, op);
-	sja1105_packing(buf, &entry->len,      55, 32, size, op);
-	sja1105_packing(buf, &entry->crc,      95, 64, size, op);
+	sja1105_unpack(buf, &entry->block_id, 31, 24, size);
+	sja1105_unpack(buf, &entry->len,      55, 32, size);
+	sja1105_unpack(buf, &entry->crc,      95, 64, size);
 	return size;
 }
 
@@ -936,7 +946,7 @@ sja1105_table_header_pack_with_crc(void *buf, struct sja1105_table_header *hdr)
 	 * finally put the proper CRC into the packed buffer
 	 */
 	memset(buf, 0, SJA1105_SIZE_TABLE_HEADER);
-	sja1105_table_header_packing(buf, hdr, PACK);
+	sja1105_table_header_pack(buf, hdr);
 	hdr->crc = sja1105_crc32(buf, SJA1105_SIZE_TABLE_HEADER - 4);
 	sja1105_pack(buf + SJA1105_SIZE_TABLE_HEADER - 4, &hdr->crc, 31, 0, 4);
 }
@@ -1161,7 +1171,7 @@ sja1105_static_config_pack(void *buf, struct sja1105_static_config *config)
 	header.len = 0;
 	header.crc = 0xDEADBEEF;
 	memset(p, 0, SJA1105_SIZE_TABLE_HEADER);
-	sja1105_table_header_packing(p, &header, PACK);
+	sja1105_table_header_pack(p, &header);
 }
 
 size_t

@@ -114,11 +114,11 @@ static void sja1105_meta_unpack(const struct sk_buff *skb,
 	 * same and the E/T puts zeroes in the high-order byte, use
 	 * a unified unpacking command for both device series.
 	 */
-	packing(buf,     &meta->tstamp,     31, 0, 4, UNPACK, 0);
-	packing(buf + 4, &meta->dmac_byte_3, 7, 0, 1, UNPACK, 0);
-	packing(buf + 5, &meta->dmac_byte_4, 7, 0, 1, UNPACK, 0);
-	packing(buf + 6, &meta->source_port, 7, 0, 1, UNPACK, 0);
-	packing(buf + 7, &meta->switch_id,   7, 0, 1, UNPACK, 0);
+	unpack(buf,     &meta->tstamp,     31, 0, 4, 0);
+	unpack(buf + 4, &meta->dmac_byte_3, 7, 0, 1, 0);
+	unpack(buf + 5, &meta->dmac_byte_4, 7, 0, 1, 0);
+	unpack(buf + 6, &meta->source_port, 7, 0, 1, 0);
+	unpack(buf + 7, &meta->switch_id,   7, 0, 1, 0);
 }
 
 static bool sja1105_is_meta_frame(const struct sk_buff *skb)
@@ -595,10 +595,10 @@ static struct sk_buff *sja1110_rcv_inband_control_extension(struct sk_buff *skb,
 		u64 *tstamp = &SJA1105_SKB_CB(skb)->tstamp;
 		u8 last_byte = rx_trailer[12];
 
-		/* The timestamp is unaligned, so we need to use packing()
+		/* The timestamp is unaligned, so we need to use unpack()
 		 * to get it
 		 */
-		packing(rx_trailer, tstamp, 63, 0, 8, UNPACK, 0);
+		unpack(rx_trailer, tstamp, 63, 0, 8, 0);
 
 		*source_port = SJA1110_RX_TRAILER_SRC_PORT(last_byte);
 		*switch_id = SJA1110_RX_TRAILER_SWITCH_ID(last_byte);

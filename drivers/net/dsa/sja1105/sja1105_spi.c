@@ -301,11 +301,11 @@ int static_config_buf_prepare_for_upload(struct sja1105_private *priv,
 	crc_len = buf_len - 4;
 	/* Read the whole table header */
 	final_header_ptr = config_buf + buf_len - SJA1105_SIZE_TABLE_HEADER;
-	sja1105_table_header_packing(final_header_ptr, &final_header, UNPACK);
+	sja1105_table_header_unpack(final_header_ptr, &final_header);
 	/* Modify */
 	final_header.crc = sja1105_crc32(config_buf, crc_len);
 	/* Rewrite */
-	sja1105_table_header_packing(final_header_ptr, &final_header, PACK);
+	sja1105_table_header_pack(final_header_ptr, &final_header);
 
 	return 0;
 }
