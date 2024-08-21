@@ -165,24 +165,34 @@ void sja1105pqrs_ptp_cmd_packing(u8 *buf, struct sja1105_ptp_cmd *cmd,
 	sja1105_packing(buf, &cmd->ptpclkadd,   0,  0, size, op);
 }
 
-int sja1105_ptp_commit(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd,
-		       sja1105_spi_rw_mode_t rw)
+int sja1105_ptp_cmd_read(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd)
 {
 	const struct sja1105_private *priv = ds->priv;
 	const struct sja1105_regs *regs = priv->info->regs;
 	u8 buf[SJA1105_SIZE_PTP_CMD] = {0};
 	int rc;
 
-	if (rw == SPI_WRITE)
-		priv->info->ptp_cmd_packing(buf, cmd, PACK);
-
-	rc = sja1105_xfer_buf(priv, rw, regs->ptp_control, buf,
+	rc = sja1105_xfer_buf(priv, SPI_READ, regs->ptp_control, buf,
 			      SJA1105_SIZE_PTP_CMD);
+	if (rc)
+		return rc;
 
-	if (rw == SPI_READ)
-		priv->info->ptp_cmd_packing(buf, cmd, UNPACK);
+	priv->info->ptp_cmd_packing(buf, cmd, UNPACK);
 
-	return rc;
+	return 0;
+}
+
+int sja1105_ptp_cmd_write(struct dsa_switch *ds,
+			  const struct sja1105_ptp_cmd *cmd)
+{
+	const struct sja1105_private *priv = ds->priv;
+	const struct sja1105_regs *regs = priv->info->regs;
+	u8 buf[SJA1105_SIZE_PTP_CMD] = {0};
+
+	priv->info->ptp_cmd_packing(buf, (struct sja1105_ptp_cmd *)cmd, PACK);
+
+	return sja1105_xfer_buf(priv, SPI_WRITE, regs->ptp_control, buf,
+			      SJA1105_SIZE_PTP_CMD);
 }
 
 /* The switch returns partial timestamps (24 bits for SJA1105 E/T, which wrap
@@ -500,7 +510,7 @@ static int sja1105_ptp_reset(struct dsa_switch *ds)
 	cmd.resptp = 1;
 
 	dev_dbg(ds->dev, "Resetting PTP clock\n");
-	rc = sja1105_ptp_commit(ds, &cmd, SPI_WRITE);
+	rc = sja1105_ptp_cmd_write(ds, &cmd);
 
 	sja1105_tas_clockstep(priv->ds);
 
@@ -558,7 +568,7 @@ static int sja1105_ptp_mode_set(struct sja1105_private *priv,
 
 	ptp_data->cmd.ptpclkadd = mode;
 
-	return sja1105_ptp_commit(priv->ds, &ptp_data->cmd, SPI_WRITE);
+	return sja1105_ptp_cmd_write(priv->ds, &ptp_data->cmd);
 }
 
 /* Write to PTPCLKVAL while PTPCLKADD is 0 */
@@ -783,7 +793,7 @@ static int sja1105_per_out_enable(struct sja1105_private *priv,
 	else
 		cmd.stopptpcp = true;
 
-	rc = sja1105_ptp_commit(priv->ds, &cmd, SPI_WRITE);
+	rc = sja1105_ptp_cmd_write(priv->ds, &cmd);
 
 out:
 	mutex_unlock(&ptp_data->lock);

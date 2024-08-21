@@ -588,7 +588,7 @@ static int sja1105_tas_check_running(struct sja1105_private *priv)
 	struct sja1105_ptp_cmd cmd = {0};
 	int rc;
 
-	rc = sja1105_ptp_commit(ds, &cmd, SPI_READ);
+	rc = sja1105_ptp_cmd_read(ds, &cmd);
 	if (rc < 0)
 		return rc;
 
@@ -643,7 +643,7 @@ static int sja1105_tas_start(struct sja1105_private *priv)
 	cmd->ptpstrtsch = 1;
 	cmd->ptpstopsch = 0;
 
-	rc = sja1105_ptp_commit(ds, cmd, SPI_WRITE);
+	rc = sja1105_ptp_cmd_write(ds, cmd);
 	if (rc < 0)
 		return rc;
 
@@ -669,7 +669,7 @@ static int sja1105_tas_stop(struct sja1105_private *priv)
 	cmd->ptpstopsch = 1;
 	cmd->ptpstrtsch = 0;
 
-	rc = sja1105_ptp_commit(ds, cmd, SPI_WRITE);
+	rc = sja1105_ptp_cmd_write(ds, cmd);
 	if (rc < 0)
 		return rc;
 

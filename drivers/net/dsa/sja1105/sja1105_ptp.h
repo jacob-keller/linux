@@ -124,8 +124,9 @@ int __sja1105_ptp_settime(struct dsa_switch *ds, u64 ns,
 
 int __sja1105_ptp_adjtime(struct dsa_switch *ds, s64 delta);
 
-int sja1105_ptp_commit(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd,
-		       sja1105_spi_rw_mode_t rw);
+int sja1105_ptp_cmd_read(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd);
+int sja1105_ptp_cmd_write(struct dsa_switch *ds,
+			  const struct sja1105_ptp_cmd *cmd);
 
 bool sja1105_rxtstamp(struct dsa_switch *ds, int port, struct sk_buff *skb);
 bool sja1110_rxtstamp(struct dsa_switch *ds, int port, struct sk_buff *skb);
@@ -175,9 +176,14 @@ static inline int __sja1105_ptp_adjtime(struct dsa_switch *ds, s64 delta)
 	return 0;
 }
 
-static inline int sja1105_ptp_commit(struct dsa_switch *ds,
-				     struct sja1105_ptp_cmd *cmd,
-				     sja1105_spi_rw_mode_t rw)
+static inline int sja1105_ptp_cmd_read(struct dsa_switch *ds,
+				       struct sja1105_ptp_cmd *cmd)
+{
+	return 0;
+}
+
+static inline int sja1105_ptp_cmd_write(struct dsa_switch *ds,
+					const struct sja1105_ptp_cmd *cmd)
 {
 	return 0;
 }
