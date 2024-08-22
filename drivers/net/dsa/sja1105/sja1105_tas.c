@@ -640,6 +640,7 @@ static int sja1105_tas_start(struct sja1105_private *priv)
 		return -EINVAL;
 	}
 
+	cmd->valid = true;
 	cmd->ptpstrtsch = 1;
 	cmd->ptpstopsch = 0;
 
@@ -666,6 +667,7 @@ static int sja1105_tas_stop(struct sja1105_private *priv)
 		return -EINVAL;
 	}
 
+	cmd->valid = true;
 	cmd->ptpstopsch = 1;
 	cmd->ptpstrtsch = 0;
 

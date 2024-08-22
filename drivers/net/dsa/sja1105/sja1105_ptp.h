@@ -64,13 +64,14 @@ static inline s64 sja1105_delta_to_ns(s64 delta)
 }
 
 struct sja1105_ptp_cmd {
-	u64 startptpcp;		/* start toggling PTP_CLK pin */
-	u64 stopptpcp;		/* stop toggling PTP_CLK pin */
-	u64 ptpstrtsch;		/* start schedule */
-	u64 ptpstopsch;		/* stop schedule */
-	u64 resptp;		/* reset */
-	u64 corrclk4ts;		/* use the corrected clock for timestamps */
-	u64 ptpclkadd;		/* enum sja1105_ptp_clk_mode */
+	u8 valid;		/* always 1 */
+	u8 startptpcp;		/* start toggling PTP_CLK pin */
+	u8 stopptpcp;		/* stop toggling PTP_CLK pin */
+	u8 ptpstrtsch;		/* start schedule */
+	u8 ptpstopsch;		/* stop schedule */
+	u8 resptp;		/* reset */
+	u8 corrclk4ts;		/* use the corrected clock for timestamps */
+	u8 ptpclkadd;		/* enum sja1105_ptp_clk_mode */
 };
 
 struct sja1105_ptp_data {
@@ -93,12 +94,6 @@ struct sja1105_ptp_data {
 int sja1105_ptp_clock_register(struct dsa_switch *ds);
 
 void sja1105_ptp_clock_unregister(struct dsa_switch *ds);
-
-void sja1105et_ptp_cmd_packing(u8 *buf, struct sja1105_ptp_cmd *cmd,
-			       enum packing_op op);
-
-void sja1105pqrs_ptp_cmd_packing(u8 *buf, struct sja1105_ptp_cmd *cmd,
-				 enum packing_op op);
 
 int sja1105_get_ts_info(struct dsa_switch *ds, int port,
 			struct kernel_ethtool_ts_info *ts);
@@ -187,10 +182,6 @@ static inline int sja1105_ptp_cmd_write(struct dsa_switch *ds,
 {
 	return 0;
 }
-
-#define sja1105et_ptp_cmd_packing NULL
-
-#define sja1105pqrs_ptp_cmd_packing NULL
 
 #define sja1105_get_ts_info NULL
 

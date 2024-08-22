@@ -58,6 +58,28 @@ enum sja1105_ptp_clk_mode {
 #define ptp_data_to_sja1105(d) \
 		container_of((d), struct sja1105_private, ptp_data)
 
+static const struct packed_field sja1105et_ptp_cmd_fields[] = {
+	PACKED_FIELD(31, 31, struct sja1105_ptp_cmd, valid),
+	PACKED_FIELD(30, 30, struct sja1105_ptp_cmd, ptpstrtsch),
+	PACKED_FIELD(29, 29, struct sja1105_ptp_cmd, ptpstopsch),
+	PACKED_FIELD(28, 28, struct sja1105_ptp_cmd, startptpcp),
+	PACKED_FIELD(27, 27, struct sja1105_ptp_cmd, stopptpcp),
+	PACKED_FIELD(2, 2, struct sja1105_ptp_cmd, resptp),
+	PACKED_FIELD(1, 1, struct sja1105_ptp_cmd, corrclk4ts),
+	PACKED_FIELD(0, 0, struct sja1105_ptp_cmd, ptpclkadd),
+};
+
+static const struct packed_field sja1105pqrs_ptp_cmd_fields[] = {
+	PACKED_FIELD(31, 31, struct sja1105_ptp_cmd, valid),
+	PACKED_FIELD(30, 30, struct sja1105_ptp_cmd, ptpstrtsch),
+	PACKED_FIELD(29, 29, struct sja1105_ptp_cmd, ptpstopsch),
+	PACKED_FIELD(28, 28, struct sja1105_ptp_cmd, startptpcp),
+	PACKED_FIELD(27, 27, struct sja1105_ptp_cmd, stopptpcp),
+	PACKED_FIELD(3, 3, struct sja1105_ptp_cmd, resptp),
+	PACKED_FIELD(2, 2, struct sja1105_ptp_cmd, corrclk4ts),
+	PACKED_FIELD(0, 0, struct sja1105_ptp_cmd, ptpclkadd),
+};
+
 int sja1105_hwtstamp_set(struct dsa_switch *ds, int port, struct ifreq *ifr)
 {
 	struct sja1105_private *priv = ds->priv;
@@ -131,40 +153,6 @@ int sja1105_get_ts_info(struct dsa_switch *ds, int port,
 	return 0;
 }
 
-void sja1105et_ptp_cmd_packing(u8 *buf, struct sja1105_ptp_cmd *cmd,
-			       enum packing_op op)
-{
-	const int size = SJA1105_SIZE_PTP_CMD;
-	/* No need to keep this as part of the structure */
-	u64 valid = 1;
-
-	sja1105_packing(buf, &valid,           31, 31, size, op);
-	sja1105_packing(buf, &cmd->ptpstrtsch, 30, 30, size, op);
-	sja1105_packing(buf, &cmd->ptpstopsch, 29, 29, size, op);
-	sja1105_packing(buf, &cmd->startptpcp, 28, 28, size, op);
-	sja1105_packing(buf, &cmd->stopptpcp,  27, 27, size, op);
-	sja1105_packing(buf, &cmd->resptp,      2,  2, size, op);
-	sja1105_packing(buf, &cmd->corrclk4ts,  1,  1, size, op);
-	sja1105_packing(buf, &cmd->ptpclkadd,   0,  0, size, op);
-}
-
-void sja1105pqrs_ptp_cmd_packing(u8 *buf, struct sja1105_ptp_cmd *cmd,
-				 enum packing_op op)
-{
-	const int size = SJA1105_SIZE_PTP_CMD;
-	/* No need to keep this as part of the structure */
-	u64 valid = 1;
-
-	sja1105_packing(buf, &valid,           31, 31, size, op);
-	sja1105_packing(buf, &cmd->ptpstrtsch, 30, 30, size, op);
-	sja1105_packing(buf, &cmd->ptpstopsch, 29, 29, size, op);
-	sja1105_packing(buf, &cmd->startptpcp, 28, 28, size, op);
-	sja1105_packing(buf, &cmd->stopptpcp,  27, 27, size, op);
-	sja1105_packing(buf, &cmd->resptp,      3,  3, size, op);
-	sja1105_packing(buf, &cmd->corrclk4ts,  2,  2, size, op);
-	sja1105_packing(buf, &cmd->ptpclkadd,   0,  0, size, op);
-}
-
 int sja1105_ptp_cmd_read(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd)
 {
 	const struct sja1105_private *priv = ds->priv;
@@ -172,12 +160,19 @@ int sja1105_ptp_cmd_read(struct dsa_switch *ds, struct sja1105_ptp_cmd *cmd)
 	u8 buf[SJA1105_SIZE_PTP_CMD] = {0};
 	int rc;
 
+	CHECK_PACKED_FIELDS_8(sja1105et_ptp_cmd_fields, SJA1105_SIZE_PTP_CMD);
+	CHECK_PACKED_FIELDS_8(sja1105pqrs_ptp_cmd_fields, SJA1105_SIZE_PTP_CMD);
+
 	rc = sja1105_read_buf(priv, regs->ptp_control, buf,
 			      SJA1105_SIZE_PTP_CMD);
 	if (rc)
 		return rc;
 
-	priv->info->ptp_cmd_packing(buf, cmd, UNPACK);
+	if (priv->info->device_id == SJA1105E_DEVICE_ID ||
+	    priv->info->device_id == SJA1105T_DEVICE_ID)
+		sja1105_unpack_fields(buf, sizeof(buf), cmd, sja1105et_ptp_cmd_fields);
+	else
+		sja1105_unpack_fields(buf, sizeof(buf), cmd, sja1105pqrs_ptp_cmd_fields);
 
 	return 0;
 }
@@ -189,7 +184,11 @@ int sja1105_ptp_cmd_write(struct dsa_switch *ds,
 	const struct sja1105_regs *regs = priv->info->regs;
 	u8 buf[SJA1105_SIZE_PTP_CMD] = {0};
 
-	priv->info->ptp_cmd_packing(buf, (struct sja1105_ptp_cmd *)cmd, PACK);
+	if (priv->info->device_id == SJA1105E_DEVICE_ID ||
+	    priv->info->device_id == SJA1105T_DEVICE_ID)
+		sja1105_pack_fields(buf, sizeof(buf), cmd, sja1105et_ptp_cmd_fields);
+	else
+		sja1105_pack_fields(buf, sizeof(buf), cmd, sja1105pqrs_ptp_cmd_fields);
 
 	return sja1105_write_buf(priv, regs->ptp_control, buf,
 				 SJA1105_SIZE_PTP_CMD);
@@ -507,6 +506,7 @@ static int sja1105_ptp_reset(struct dsa_switch *ds)
 
 	mutex_lock(&ptp_data->lock);
 
+	cmd.valid = true;
 	cmd.resptp = 1;
 
 	dev_dbg(ds->dev, "Resetting PTP clock\n");
@@ -566,6 +566,7 @@ static int sja1105_ptp_mode_set(struct sja1105_private *priv,
 	if (ptp_data->cmd.ptpclkadd == mode)
 		return 0;
 
+	ptp_data->cmd.valid = true;
 	ptp_data->cmd.ptpclkadd = mode;
 
 	return sja1105_ptp_cmd_write(priv->ds, &ptp_data->cmd);
@@ -787,6 +788,8 @@ static int sja1105_per_out_enable(struct sja1105_private *priv,
 		if (rc < 0)
 			goto out;
 	}
+
+	cmd.valid = true;
 
 	if (on)
 		cmd.startptpcp = true;
