@@ -11,29 +11,31 @@
 
 /* Common structure for CFG_PAD_MIIx_RX and CFG_PAD_MIIx_TX */
 struct sja1105_cfg_pad_mii {
-	u64 d32_os;
-	u64 d32_ih;
-	u64 d32_ipud;
-	u64 d10_ih;
-	u64 d10_os;
-	u64 d10_ipud;
-	u64 ctrl_os;
-	u64 ctrl_ih;
-	u64 ctrl_ipud;
-	u64 clk_os;
-	u64 clk_ih;
-	u64 clk_ipud;
+	u8 d32_os;
+	u8 d32_ih;
+	u8 d32_ipud;
+	u8 d10_ih;
+	u8 d10_os;
+	u8 d10_ipud;
+	u8 ctrl_os;
+	u8 ctrl_ih;
+	u8 ctrl_ipud;
+	u8 clk_os;
+	u8 clk_ih;
+	u8 clk_ipud;
 };
 
 struct sja1105_cfg_pad_mii_id {
-	u64 rxc_stable_ovr;
-	u64 rxc_delay;
-	u64 rxc_bypass;
-	u64 rxc_pd;
-	u64 txc_stable_ovr;
-	u64 txc_delay;
-	u64 txc_bypass;
-	u64 txc_pd;
+	u8 rxc_stable_ovr;
+	u8 rxc_delay;
+	u8 rxc_range; /* exclusive to SJA1110 */
+	u8 rxc_bypass;
+	u8 rxc_pd;
+	u8 txc_stable_ovr;
+	u8 txc_delay;
+	u8 txc_range; /* exclusive to SJA1110 */
+	u8 txc_bypass;
+	u8 txc_pd;
 };
 
 /* UM10944 Table 82.
@@ -41,10 +43,10 @@ struct sja1105_cfg_pad_mii_id {
  * (addr. 10000Bh to 10000Fh)
  */
 struct sja1105_cgu_idiv {
-	u64 clksrc;
-	u64 autoblock;
-	u64 idiv;
-	u64 pd;
+	u8 clksrc;
+	u8 autoblock;
+	u8 idiv;
+	u8 pd;
 };
 
 /* PLL_1_C control register
@@ -53,20 +55,20 @@ struct sja1105_cgu_idiv {
  * SJA1105 P/Q/R/S: UM11040 Table 116 (address 10000Ah)
  */
 struct sja1105_cgu_pll_ctrl {
-	u64 pllclksrc;
-	u64 msel;
-	u64 autoblock;
-	u64 psel;
-	u64 direct;
-	u64 fbsel;
-	u64 bypass;
-	u64 pd;
+	u8 pllclksrc;
+	u8 msel;
+	u8 autoblock;
+	u8 psel;
+	u8 direct;
+	u8 fbsel;
+	u8 bypass;
+	u8 pd;
 };
 
 struct sja1110_cgu_outclk {
-	u64 clksrc;
-	u64 autoblock;
-	u64 pd;
+	u8 clksrc;
+	u8 autoblock;
+	u8 pd;
 };
 
 enum {
@@ -94,21 +96,17 @@ enum {
  * (addresses 100013h to 100035h)
  */
 struct sja1105_cgu_mii_ctrl {
-	u64 clksrc;
-	u64 autoblock;
-	u64 pd;
+	u8 clksrc;
+	u8 autoblock;
+	u8 pd;
 };
 
-static void sja1105_cgu_idiv_packing(void *buf, struct sja1105_cgu_idiv *idiv,
-				     enum packing_op op)
-{
-	const int size = 4;
-
-	sja1105_packing(buf, &idiv->clksrc,    28, 24, size, op);
-	sja1105_packing(buf, &idiv->autoblock, 11, 11, size, op);
-	sja1105_packing(buf, &idiv->idiv,       5,  2, size, op);
-	sja1105_packing(buf, &idiv->pd,         0,  0, size, op);
-}
+static const struct packed_field sja1105_cgu_idiv_fields[] = {
+	PACKED_FIELD(28, 24, struct sja1105_cgu_idiv, clksrc),
+	PACKED_FIELD(11, 11, struct sja1105_cgu_idiv, autoblock),
+	PACKED_FIELD(5, 2, struct sja1105_cgu_idiv, idiv),
+	PACKED_FIELD(0, 0, struct sja1105_cgu_idiv, pd),
+};
 
 static int sja1105_cgu_idiv_config(struct sja1105_private *priv, int port,
 				   bool enabled, int factor)
@@ -131,22 +129,19 @@ static int sja1105_cgu_idiv_config(struct sja1105_private *priv, int port,
 	idiv.autoblock = 1;               /* Block clk automatically */
 	idiv.idiv      = factor - 1;      /* Divide by 1 or 10 */
 	idiv.pd        = enabled ? 0 : 1; /* Power down? */
-	sja1105_cgu_idiv_packing(packed_buf, &idiv, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &idiv,
+			    sja1105_cgu_idiv_fields);
 
 	return sja1105_write_buf(priv, regs->cgu_idiv[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
 }
 
-static void
-sja1105_cgu_mii_control_packing(void *buf, struct sja1105_cgu_mii_ctrl *cmd,
-				enum packing_op op)
-{
-	const int size = 4;
-
-	sja1105_packing(buf, &cmd->clksrc,    28, 24, size, op);
-	sja1105_packing(buf, &cmd->autoblock, 11, 11, size, op);
-	sja1105_packing(buf, &cmd->pd,         0,  0, size, op);
-}
+static const struct packed_field sja1105_cgu_mii_ctrl_fields[] = {
+	PACKED_FIELD(28, 24, struct sja1105_cgu_mii_ctrl, clksrc),
+	PACKED_FIELD(11, 11, struct sja1105_cgu_mii_ctrl, autoblock),
+	PACKED_FIELD(0, 0, struct sja1105_cgu_mii_ctrl, pd),
+};
 
 static int sja1105_cgu_mii_tx_clk_config(struct sja1105_private *priv,
 					 int port, sja1105_mii_role_t role)
@@ -182,7 +177,9 @@ static int sja1105_cgu_mii_tx_clk_config(struct sja1105_private *priv,
 	mii_tx_clk.clksrc    = clksrc;
 	mii_tx_clk.autoblock = 1;  /* Autoblock clk while changing clksrc */
 	mii_tx_clk.pd        = 0;  /* Power Down off => enabled */
-	sja1105_cgu_mii_control_packing(packed_buf, &mii_tx_clk, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &mii_tx_clk,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->mii_tx_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -209,7 +206,9 @@ sja1105_cgu_mii_rx_clk_config(struct sja1105_private *priv, int port)
 	mii_rx_clk.clksrc    = clk_sources[port];
 	mii_rx_clk.autoblock = 1;  /* Autoblock clk while changing clksrc */
 	mii_rx_clk.pd        = 0;  /* Power Down off => enabled */
-	sja1105_cgu_mii_control_packing(packed_buf, &mii_rx_clk, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &mii_rx_clk,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->mii_rx_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -236,7 +235,9 @@ sja1105_cgu_mii_ext_tx_clk_config(struct sja1105_private *priv, int port)
 	mii_ext_tx_clk.clksrc    = clk_sources[port];
 	mii_ext_tx_clk.autoblock = 1; /* Autoblock clk while changing clksrc */
 	mii_ext_tx_clk.pd        = 0; /* Power Down off => enabled */
-	sja1105_cgu_mii_control_packing(packed_buf, &mii_ext_tx_clk, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &mii_ext_tx_clk,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->mii_ext_tx_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -263,7 +264,9 @@ sja1105_cgu_mii_ext_rx_clk_config(struct sja1105_private *priv, int port)
 	mii_ext_rx_clk.clksrc    = clk_sources[port];
 	mii_ext_rx_clk.autoblock = 1; /* Autoblock clk while changing clksrc */
 	mii_ext_rx_clk.pd        = 0; /* Power Down off => enabled */
-	sja1105_cgu_mii_control_packing(packed_buf, &mii_ext_rx_clk, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &mii_ext_rx_clk,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->mii_ext_rx_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -319,21 +322,16 @@ static int sja1105_mii_clocking_setup(struct sja1105_private *priv, int port,
 	return 0;
 }
 
-static void
-sja1105_cgu_pll_control_packing(void *buf, struct sja1105_cgu_pll_ctrl *cmd,
-				enum packing_op op)
-{
-	const int size = 4;
-
-	sja1105_packing(buf, &cmd->pllclksrc, 28, 24, size, op);
-	sja1105_packing(buf, &cmd->msel,      23, 16, size, op);
-	sja1105_packing(buf, &cmd->autoblock, 11, 11, size, op);
-	sja1105_packing(buf, &cmd->psel,       9,  8, size, op);
-	sja1105_packing(buf, &cmd->direct,     7,  7, size, op);
-	sja1105_packing(buf, &cmd->fbsel,      6,  6, size, op);
-	sja1105_packing(buf, &cmd->bypass,     1,  1, size, op);
-	sja1105_packing(buf, &cmd->pd,         0,  0, size, op);
-}
+static const struct packed_field sja1105_cgu_pll_ctrl_fields[] = {
+	PACKED_FIELD(28, 24, struct sja1105_cgu_pll_ctrl, pllclksrc),
+	PACKED_FIELD(23, 16, struct sja1105_cgu_pll_ctrl, msel),
+	PACKED_FIELD(11, 11, struct sja1105_cgu_pll_ctrl, autoblock),
+	PACKED_FIELD(9, 8, struct sja1105_cgu_pll_ctrl, psel),
+	PACKED_FIELD(7, 7, struct sja1105_cgu_pll_ctrl, direct),
+	PACKED_FIELD(6, 6, struct sja1105_cgu_pll_ctrl, fbsel),
+	PACKED_FIELD(1, 1, struct sja1105_cgu_pll_ctrl, bypass),
+	PACKED_FIELD(0, 0, struct sja1105_cgu_pll_ctrl, pd),
+};
 
 static int sja1105_cgu_rgmii_tx_clk_config(struct sja1105_private *priv,
 					   int port, u64 speed)
@@ -365,32 +363,29 @@ static int sja1105_cgu_rgmii_tx_clk_config(struct sja1105_private *priv,
 	txc.autoblock = 1;
 	/* Power Down off => enabled */
 	txc.pd = 0;
-	sja1105_cgu_mii_control_packing(packed_buf, &txc, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &txc,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->rgmii_tx_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
 }
 
 /* AGU */
-static void
-sja1105_cfg_pad_mii_packing(void *buf, struct sja1105_cfg_pad_mii *cmd,
-			    enum packing_op op)
-{
-	const int size = 4;
-
-	sja1105_packing(buf, &cmd->d32_os,   28, 27, size, op);
-	sja1105_packing(buf, &cmd->d32_ih,   26, 26, size, op);
-	sja1105_packing(buf, &cmd->d32_ipud, 25, 24, size, op);
-	sja1105_packing(buf, &cmd->d10_os,   20, 19, size, op);
-	sja1105_packing(buf, &cmd->d10_ih,   18, 18, size, op);
-	sja1105_packing(buf, &cmd->d10_ipud, 17, 16, size, op);
-	sja1105_packing(buf, &cmd->ctrl_os,  12, 11, size, op);
-	sja1105_packing(buf, &cmd->ctrl_ih,  10, 10, size, op);
-	sja1105_packing(buf, &cmd->ctrl_ipud, 9,  8, size, op);
-	sja1105_packing(buf, &cmd->clk_os,    4,  3, size, op);
-	sja1105_packing(buf, &cmd->clk_ih,    2,  2, size, op);
-	sja1105_packing(buf, &cmd->clk_ipud,  1,  0, size, op);
-}
+static const struct packed_field sja1105_cfg_pad_mii_fields[] = {
+	PACKED_FIELD(28, 27, struct sja1105_cfg_pad_mii, d32_os),
+	PACKED_FIELD(26, 26, struct sja1105_cfg_pad_mii, d32_ih),
+	PACKED_FIELD(25, 24, struct sja1105_cfg_pad_mii, d32_ipud),
+	PACKED_FIELD(20, 19, struct sja1105_cfg_pad_mii, d10_os),
+	PACKED_FIELD(18, 18, struct sja1105_cfg_pad_mii, d10_ih),
+	PACKED_FIELD(17, 16, struct sja1105_cfg_pad_mii, d10_ipud),
+	PACKED_FIELD(12, 11, struct sja1105_cfg_pad_mii, ctrl_os),
+	PACKED_FIELD(10, 10, struct sja1105_cfg_pad_mii, ctrl_ih),
+	PACKED_FIELD(9, 8, struct sja1105_cfg_pad_mii, ctrl_ipud),
+	PACKED_FIELD(4, 3, struct sja1105_cfg_pad_mii, clk_os),
+	PACKED_FIELD(2, 2, struct sja1105_cfg_pad_mii, clk_ih),
+	PACKED_FIELD(1, 0, struct sja1105_cfg_pad_mii, clk_ipud),
+};
 
 static int sja1105_rgmii_cfg_pad_tx_config(struct sja1105_private *priv,
 					   int port)
@@ -416,7 +411,9 @@ static int sja1105_rgmii_cfg_pad_tx_config(struct sja1105_private *priv,
 	pad_mii_tx.clk_os    = 3; /* TX_CLK output stage */
 	pad_mii_tx.clk_ih    = 0; /* TX_CLK input hysteresis (default) */
 	pad_mii_tx.clk_ipud  = 2; /* TX_CLK input stage (default) */
-	sja1105_cfg_pad_mii_packing(packed_buf, &pad_mii_tx, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pad_mii_tx,
+			    sja1105_cfg_pad_mii_fields);
 
 	return sja1105_write_buf(priv, regs->pad_mii_tx[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -452,56 +449,37 @@ static int sja1105_cfg_pad_rx_config(struct sja1105_private *priv, int port)
 				  /* non-Schmitt (default) */
 	pad_mii_rx.clk_ipud  = 2; /* RX_CLK/RXC input pull-up/down: */
 				  /* plain input (default) */
-	sja1105_cfg_pad_mii_packing(packed_buf, &pad_mii_rx, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pad_mii_rx,
+			    sja1105_cfg_pad_mii_fields);
 
 	return sja1105_write_buf(priv, regs->pad_mii_rx[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
 }
 
-static void
-sja1105_cfg_pad_mii_id_packing(void *buf, struct sja1105_cfg_pad_mii_id *cmd,
-			       enum packing_op op)
-{
-	const int size = SJA1105_SIZE_CGU_CMD;
+static const struct packed_field sja1105_cfg_pad_mii_id_fields[] = {
+	PACKED_FIELD(15, 15, struct sja1105_cfg_pad_mii_id, rxc_stable_ovr),
+	PACKED_FIELD(14, 10, struct sja1105_cfg_pad_mii_id, rxc_delay),
+	PACKED_FIELD(9, 9, struct sja1105_cfg_pad_mii_id, rxc_bypass),
+	PACKED_FIELD(8, 8, struct sja1105_cfg_pad_mii_id, rxc_pd),
+	PACKED_FIELD(7, 7, struct sja1105_cfg_pad_mii_id, txc_stable_ovr),
+	PACKED_FIELD(6, 2, struct sja1105_cfg_pad_mii_id, txc_delay),
+	PACKED_FIELD(1, 1, struct sja1105_cfg_pad_mii_id, txc_bypass),
+	PACKED_FIELD(0, 0, struct sja1105_cfg_pad_mii_id, txc_pd),
+};
 
-	sja1105_packing(buf, &cmd->rxc_stable_ovr, 15, 15, size, op);
-	sja1105_packing(buf, &cmd->rxc_delay,      14, 10, size, op);
-	sja1105_packing(buf, &cmd->rxc_bypass,      9,  9, size, op);
-	sja1105_packing(buf, &cmd->rxc_pd,          8,  8, size, op);
-	sja1105_packing(buf, &cmd->txc_stable_ovr,  7,  7, size, op);
-	sja1105_packing(buf, &cmd->txc_delay,       6,  2, size, op);
-	sja1105_packing(buf, &cmd->txc_bypass,      1,  1, size, op);
-	sja1105_packing(buf, &cmd->txc_pd,          0,  0, size, op);
-}
-
-static void
-sja1110_cfg_pad_mii_id_packing(void *buf, struct sja1105_cfg_pad_mii_id *cmd,
-			       enum packing_op op)
-{
-	const int size = SJA1105_SIZE_CGU_CMD;
-	u64 range = 4;
-
-	/* Fields RXC_RANGE and TXC_RANGE select the input frequency range:
-	 * 0 = 2.5MHz
-	 * 1 = 25MHz
-	 * 2 = 50MHz
-	 * 3 = 125MHz
-	 * 4 = Automatically determined by port speed.
-	 * There's no point in defining a structure different than the one for
-	 * SJA1105, so just hardcode the frequency range to automatic, just as
-	 * before.
-	 */
-	sja1105_packing(buf, &cmd->rxc_stable_ovr, 26, 26, size, op);
-	sja1105_packing(buf, &cmd->rxc_delay,      25, 21, size, op);
-	sja1105_packing(buf, &range,               20, 18, size, op);
-	sja1105_packing(buf, &cmd->rxc_bypass,     17, 17, size, op);
-	sja1105_packing(buf, &cmd->rxc_pd,         16, 16, size, op);
-	sja1105_packing(buf, &cmd->txc_stable_ovr, 10, 10, size, op);
-	sja1105_packing(buf, &cmd->txc_delay,       9,  5, size, op);
-	sja1105_packing(buf, &range,                4,  2, size, op);
-	sja1105_packing(buf, &cmd->txc_bypass,      1,  1, size, op);
-	sja1105_packing(buf, &cmd->txc_pd,          0,  0, size, op);
-}
+static const struct packed_field sja1110_cfg_pad_mii_id_fields[] = {
+	PACKED_FIELD(26, 26, struct sja1105_cfg_pad_mii_id, rxc_stable_ovr),
+	PACKED_FIELD(25, 21, struct sja1105_cfg_pad_mii_id, rxc_delay),
+	PACKED_FIELD(20, 18, struct sja1105_cfg_pad_mii_id, rxc_range),
+	PACKED_FIELD(17, 17, struct sja1105_cfg_pad_mii_id, rxc_bypass),
+	PACKED_FIELD(16, 16, struct sja1105_cfg_pad_mii_id, rxc_pd),
+	PACKED_FIELD(10, 10, struct sja1105_cfg_pad_mii_id, txc_stable_ovr),
+	PACKED_FIELD(9, 5, struct sja1105_cfg_pad_mii_id, txc_delay),
+	PACKED_FIELD(4, 2, struct sja1105_cfg_pad_mii_id, txc_range),
+	PACKED_FIELD(1, 1, struct sja1105_cfg_pad_mii_id, txc_bypass),
+	PACKED_FIELD(0, 0, struct sja1105_cfg_pad_mii_id, txc_pd),
+};
 
 /* The RGMII delay setup procedure is 2-step and gets called upon each
  * .phylink_mac_config. Both are strategic.
@@ -530,7 +508,9 @@ int sja1105pqrs_setup_rgmii_delay(const void *ctx, int port)
 	pad_mii_id.rxc_pd = 1;
 	pad_mii_id.txc_bypass = 1;
 	pad_mii_id.txc_pd = 1;
-	sja1105_cfg_pad_mii_id_packing(packed_buf, &pad_mii_id, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pad_mii_id,
+			    sja1105_cfg_pad_mii_id_fields);
 
 	rc = sja1105_write_buf(priv, regs->pad_mii_id[port], packed_buf,
 			       SJA1105_SIZE_CGU_CMD);
@@ -546,7 +526,9 @@ int sja1105pqrs_setup_rgmii_delay(const void *ctx, int port)
 		pad_mii_id.txc_bypass = 0;
 		pad_mii_id.txc_pd = 0;
 	}
-	sja1105_cfg_pad_mii_id_packing(packed_buf, &pad_mii_id, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pad_mii_id,
+			    sja1105_cfg_pad_mii_id_fields);
 
 	return sja1105_write_buf(priv, regs->pad_mii_id[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -577,7 +559,19 @@ int sja1110_setup_rgmii_delay(const void *ctx, int port)
 		pad_mii_id.txc_pd = 0;
 	}
 
-	sja1110_cfg_pad_mii_id_packing(packed_buf, &pad_mii_id, PACK);
+	/* Fields RXC_RANGE and TXC_RANGE select the input frequency range:
+	 * 0 = 2.5MHz
+	 * 1 = 25MHz
+	 * 2 = 50MHz
+	 * 3 = 125MHz
+	 * 4 = Automatically determined by port speed.
+	 * By setting these to automatic, we behave just like SJA1105.
+	 */
+	pad_mii_id.rxc_range = 4;
+	pad_mii_id.txc_range = 4;
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pad_mii_id,
+			    sja1110_cfg_pad_mii_id_fields);
 
 	return sja1105_write_buf(priv, regs->pad_mii_id[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -658,7 +652,9 @@ static int sja1105_cgu_rmii_ref_clk_config(struct sja1105_private *priv,
 	ref_clk.clksrc    = clk_sources[port];
 	ref_clk.autoblock = 1;      /* Autoblock clk while changing clksrc */
 	ref_clk.pd        = 0;      /* Power Down off => enabled */
-	sja1105_cgu_mii_control_packing(packed_buf, &ref_clk, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &ref_clk,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->rmii_ref_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -678,7 +674,9 @@ sja1105_cgu_rmii_ext_tx_clk_config(struct sja1105_private *priv, int port)
 	ext_tx_clk.clksrc    = CLKSRC_PLL1;
 	ext_tx_clk.autoblock = 1;   /* Autoblock clk while changing clksrc */
 	ext_tx_clk.pd        = 0;   /* Power Down off => enabled */
-	sja1105_cgu_mii_control_packing(packed_buf, &ext_tx_clk, PACK);
+
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &ext_tx_clk,
+			    sja1105_cgu_mii_ctrl_fields);
 
 	return sja1105_write_buf(priv, regs->rmii_ext_tx_clk[port], packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
@@ -711,7 +709,9 @@ static int sja1105_cgu_rmii_pll_config(struct sja1105_private *priv)
 	pll.bypass    = 0x0;
 	pll.pd        = 0x1;
 
-	sja1105_cgu_pll_control_packing(packed_buf, &pll, PACK);
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pll,
+			    sja1105_cgu_pll_ctrl_fields);
+
 	rc = sja1105_write_buf(priv, regs->rmii_pll1, packed_buf,
 			       SJA1105_SIZE_CGU_CMD);
 	if (rc < 0) {
@@ -722,7 +722,9 @@ static int sja1105_cgu_rmii_pll_config(struct sja1105_private *priv)
 	/* Step 2: Enable PLL1 */
 	pll.pd = 0x0;
 
-	sja1105_cgu_pll_control_packing(packed_buf, &pll, PACK);
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &pll,
+			    sja1105_cgu_pll_ctrl_fields);
+
 	rc = sja1105_write_buf(priv, regs->rmii_pll1, packed_buf,
 			       SJA1105_SIZE_CGU_CMD);
 	if (rc < 0) {
@@ -820,16 +822,11 @@ int sja1105_clocking_setup(struct sja1105_private *priv)
 	return 0;
 }
 
-static void
-sja1110_cgu_outclk_packing(void *buf, struct sja1110_cgu_outclk *outclk,
-			   enum packing_op op)
-{
-	const int size = 4;
-
-	sja1105_packing(buf, &outclk->clksrc,    27, 24, size, op);
-	sja1105_packing(buf, &outclk->autoblock, 11, 11, size, op);
-	sja1105_packing(buf, &outclk->pd,         0,  0, size, op);
-}
+static const struct packed_field sja1110_cgu_outclk_fields[] = {
+	PACKED_FIELD(27, 24, struct sja1110_cgu_outclk, clksrc),
+	PACKED_FIELD(11, 11, struct sja1110_cgu_outclk, autoblock),
+	PACKED_FIELD(0, 0, struct sja1110_cgu_outclk, pd),
+};
 
 int sja1110_disable_microcontroller(struct sja1105_private *priv)
 {
@@ -844,8 +841,17 @@ int sja1110_disable_microcontroller(struct sja1105_private *priv)
 	};
 	int rc;
 
+	CHECK_PACKED_FIELDS_4(sja1105_cgu_idiv_fields, SJA1105_SIZE_CGU_CMD);
+	CHECK_PACKED_FIELDS_3(sja1105_cgu_mii_ctrl_fields, SJA1105_SIZE_CGU_CMD);
+	CHECK_PACKED_FIELDS_8(sja1105_cgu_pll_ctrl_fields, SJA1105_SIZE_CGU_CMD);
+	CHECK_PACKED_FIELDS_12(sja1105_cfg_pad_mii_fields, SJA1105_SIZE_CGU_CMD);
+	CHECK_PACKED_FIELDS_8(sja1105_cfg_pad_mii_id_fields, SJA1105_SIZE_CGU_CMD);
+	CHECK_PACKED_FIELDS_10(sja1110_cfg_pad_mii_id_fields, SJA1105_SIZE_CGU_CMD);
+	CHECK_PACKED_FIELDS_3(sja1110_cgu_outclk_fields, SJA1105_SIZE_CGU_CMD);
+
 	/* Power down the BASE_TIMER_CLK to disable the watchdog timer */
-	sja1110_cgu_outclk_packing(packed_buf, &outclk_7_c, PACK);
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &outclk_7_c,
+			    sja1110_cgu_outclk_fields);
 
 	rc = sja1105_write_buf(priv, SJA1110_BASE_TIMER_CLK, packed_buf,
 			       SJA1105_SIZE_CGU_CMD);
@@ -853,7 +859,8 @@ int sja1110_disable_microcontroller(struct sja1105_private *priv)
 		return rc;
 
 	/* Power down the BASE_MCSS_CLOCK to gate the microcontroller off */
-	sja1110_cgu_outclk_packing(packed_buf, &outclk_6_c, PACK);
+	sja1105_pack_fields(packed_buf, sizeof(packed_buf), &outclk_6_c,
+			    sja1110_cgu_outclk_fields);
 
 	return sja1105_write_buf(priv, SJA1110_BASE_MCSS_CLK, packed_buf,
 				 SJA1105_SIZE_CGU_CMD);
