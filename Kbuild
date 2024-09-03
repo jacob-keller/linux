@@ -34,6 +34,19 @@ arch/$(SRCARCH)/kernel/asm-offsets.s: $(timeconst-file) $(bounds-file)
 $(offsets-file): arch/$(SRCARCH)/kernel/asm-offsets.s FORCE
 	$(call filechk,offsets,__ASM_OFFSETS_H__)
 
+# Generate packing-checks.h
+
+hostprogs += lib/gen_packing_checks
+
+packing-checks := include/generated/packing-checks.h
+
+filechk_gen_packing_checks = lib/gen_packing_checks
+
+$(packing-checks): lib/gen_packing_checks FORCE
+	$(call filechk,gen_packing_checks)
+
+always-y := $(packing-checks)
+
 # Check for missing system calls
 
 quiet_cmd_syscalls = CALL    $<
