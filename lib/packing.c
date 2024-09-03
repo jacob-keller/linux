@@ -5,6 +5,7 @@
 #include <linux/packing.h>
 #include <linux/module.h>
 #include <linux/bitops.h>
+#include <linux/bits.h>
 #include <linux/errno.h>
 #include <linux/types.h>
 #include <linux/bitrev.h>
@@ -283,5 +284,73 @@ int unpack(const void *pbuf, u64 *uval, size_t startbit, size_t endbit,
 	return 0;
 }
 EXPORT_SYMBOL(unpack);
+
+static u64 ustruct_field_to_u64(const void *ustruct, const struct packed_field *field)
+{
+	switch (field->size) {
+	case 1:
+		return *((u8 *)(ustruct + field->offset));
+	case 2:
+		return *((u16 *)(ustruct + field->offset));
+	case 4:
+		return *((u32 *)(ustruct + field->offset));
+	default:
+		return *((u64 *)(ustruct + field->offset));
+	}
+}
+
+static void u64_to_ustruct_field(void *ustruct, const struct packed_field *field,
+				 u64 uval)
+{
+	switch (field->size) {
+	case 1:
+		*((u8 *)(ustruct + field->offset)) = uval;
+		break;
+	case 2:
+		*((u16 *)(ustruct + field->offset)) = uval;
+		break;
+	case 4:
+		*((u32 *)(ustruct + field->offset)) = uval;
+		break;
+	default:
+		*((u64 *)(ustruct + field->offset)) = uval;
+		break;
+	}
+}
+
+void pack_fields(void *pbuf, size_t pbuflen, const void *ustruct,
+		 const struct packed_field *fields, size_t num_fields, u8 quirks)
+{
+	size_t i;
+
+	for (i = 0; i < num_fields; i++) {
+		const struct packed_field *field = &fields[i];
+		u64 uval;
+
+		uval = ustruct_field_to_u64(ustruct, field);
+
+		__pack(pbuf, uval, field->startbit, field->endbit, pbuflen,
+		       quirks);
+	}
+}
+EXPORT_SYMBOL(pack_fields);
+
+void unpack_fields(const void *pbuf, size_t pbuflen, void *ustruct,
+		   const struct packed_field *fields, size_t num_fields,
+		   u8 quirks)
+{
+	size_t i;
+
+	for (i = 0; i < num_fields; i++) {
+		const struct packed_field *field = &fields[i];
+		u64 uval;
+
+		__unpack(pbuf, &uval, field->startbit, field->endbit, pbuflen,
+			 quirks);
+
+		u64_to_ustruct_field(ustruct, field, uval);
+	}
+}
+EXPORT_SYMBOL(unpack_fields);
 
 MODULE_DESCRIPTION("Generic bitfield packing and unpacking");
