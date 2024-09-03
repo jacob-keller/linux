@@ -286,9 +286,9 @@ struct sja1105_private {
 #include "sja1105_dynamic_config.h"
 
 struct sja1105_spi_message {
-	u64 access;
-	u64 read_count;
-	u64 address;
+	u8 access;
+	u8 read_count;
+	u32 address;
 };
 
 /* From sja1105_main.c */

@@ -13,16 +13,22 @@ struct sja1105_chunk {
 	u64	reg_addr;
 };
 
+static const struct packed_field sja1105_spi_message_fields[] = {
+	PACKED_FIELD(31, 31, struct sja1105_spi_message, access),
+	PACKED_FIELD(30, 25, struct sja1105_spi_message, read_count),
+	PACKED_FIELD(24, 4, struct sja1105_spi_message, address),
+};
+
 static void
 sja1105_spi_message_pack(void *buf, const struct sja1105_spi_message *msg)
 {
 	const int size = SJA1105_SIZE_SPI_MSG_HEADER;
 
+	CHECK_PACKED_FIELDS_3(sja1105_spi_message_fields, SJA1105_SIZE_SPI_MSG_HEADER);
+
 	memset(buf, 0, size);
 
-	sja1105_pack(buf, msg->access,     31, 31, size);
-	sja1105_pack(buf, msg->read_count, 30, 25, size);
-	sja1105_pack(buf, msg->address,    24,  4, size);
+	sja1105_pack_fields(buf, size, msg, sja1105_spi_message_fields);
 }
 
 /* If @rw is:
