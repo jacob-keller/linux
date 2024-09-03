@@ -57,8 +57,8 @@ static void __pack(void *pbuf, u64 uval, size_t startbit, size_t endbit,
 	/* Logical byte indices corresponding to the
 	 * start and end of the field.
 	 */
-	int plogical_first_u8 = startbit / 8;
-	int plogical_last_u8 = endbit / 8;
+	int plogical_first_u8 = startbit / BITS_PER_BYTE;
+	int plogical_last_u8 = endbit / BITS_PER_BYTE;
 	int box;
 
 	/* Iterate through an idealistic view of the pbuf as an u64 with
@@ -79,11 +79,11 @@ static void __pack(void *pbuf, u64 uval, size_t startbit, size_t endbit,
 		 * input arguments startbit and endbit.
 		 */
 		if (box == plogical_first_u8)
-			box_start_bit = startbit % 8;
+			box_start_bit = startbit % BITS_PER_BYTE;
 		else
 			box_start_bit = 7;
 		if (box == plogical_last_u8)
-			box_end_bit = endbit % 8;
+			box_end_bit = endbit % BITS_PER_BYTE;
 		else
 			box_end_bit = 0;
 
@@ -94,8 +94,8 @@ static void __pack(void *pbuf, u64 uval, size_t startbit, size_t endbit,
 		 * box is u8, the projection is u64 because it may fall
 		 * anywhere within the unpacked u64.
 		 */
-		proj_start_bit = ((box * 8) + box_start_bit) - endbit;
-		proj_end_bit   = ((box * 8) + box_end_bit) - endbit;
+		proj_start_bit = ((box * BITS_PER_BYTE) + box_start_bit) - endbit;
+		proj_end_bit = ((box * BITS_PER_BYTE) + box_end_bit) - endbit;
 		proj_mask = GENMASK_ULL(proj_start_bit, proj_end_bit);
 		box_mask  = GENMASK_ULL(box_start_bit, box_end_bit);
 
@@ -149,7 +149,7 @@ int pack(void *pbuf, u64 uval, size_t startbit, size_t endbit, size_t pbuflen,
 	/* startbit is expected to be larger than endbit, and both are
 	 * expected to be within the logically addressable range of the buffer.
 	 */
-	if (unlikely(startbit < endbit || startbit >= 8 * pbuflen))
+	if (unlikely(startbit < endbit || startbit >= BITS_PER_BYTE * pbuflen))
 		/* Invalid function call */
 		return -EINVAL;
 
@@ -189,8 +189,8 @@ static void __unpack(const void *pbuf, u64 *uval, size_t startbit,
 	 * no quirks, u8 by u8 (aligned at u8 boundaries), from high to low
 	 * logical bit significance. "box" denotes the current logical u8.
 	 */
-	plogical_first_u8 = startbit / 8;
-	plogical_last_u8  = endbit / 8;
+	plogical_first_u8 = startbit / BITS_PER_BYTE;
+	plogical_last_u8  = endbit / BITS_PER_BYTE;
 
 	for (box = plogical_first_u8; box >= plogical_last_u8; box--) {
 		/* Bit indices into the currently accessed 8-bit box */
@@ -206,11 +206,11 @@ static void __unpack(const void *pbuf, u64 *uval, size_t startbit,
 		 * input arguments startbit and endbit.
 		 */
 		if (box == plogical_first_u8)
-			box_start_bit = startbit % 8;
+			box_start_bit = startbit % BITS_PER_BYTE;
 		else
 			box_start_bit = 7;
 		if (box == plogical_last_u8)
-			box_end_bit = endbit % 8;
+			box_end_bit = endbit % BITS_PER_BYTE;
 		else
 			box_end_bit = 0;
 
@@ -221,8 +221,8 @@ static void __unpack(const void *pbuf, u64 *uval, size_t startbit,
 		 * box is u8, the projection is u64 because it may fall
 		 * anywhere within the unpacked u64.
 		 */
-		proj_start_bit = ((box * 8) + box_start_bit) - endbit;
-		proj_end_bit   = ((box * 8) + box_end_bit) - endbit;
+		proj_start_bit = ((box * BITS_PER_BYTE) + box_start_bit) - endbit;
+		proj_end_bit = ((box * BITS_PER_BYTE) + box_end_bit) - endbit;
 		proj_mask = GENMASK_ULL(proj_start_bit, proj_end_bit);
 		box_mask  = GENMASK_ULL(box_start_bit, box_end_bit);
 
@@ -276,7 +276,7 @@ int unpack(const void *pbuf, u64 *uval, size_t startbit, size_t endbit,
 	/* startbit is expected to be larger than endbit, and both are
 	 * expected to be within the logically addressable range of the buffer.
 	 */
-	if (startbit < endbit || startbit >= 8 * pbuflen)
+	if (startbit < endbit || startbit >= BITS_PER_BYTE * pbuflen)
 		/* Invalid function call */
 		return -EINVAL;
 
