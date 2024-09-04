@@ -93,17 +93,15 @@ ice_aq_set_rss_key(struct ice_hw *hw, u16 vsi_handle,
 bool ice_check_sq_alive(struct ice_hw *hw, struct ice_ctl_q_info *cq);
 int ice_aq_q_shutdown(struct ice_hw *hw, bool unloading);
 void ice_fill_dflt_direct_cmd_desc(struct ice_aq_desc *desc, u16 opcode);
-extern const struct ice_ctx_ele ice_tlan_ctx_info[];
-extern const struct ice_ctx_ele ice_rlan_ctx_info[];
 
-void __ice_pack_queue_ctx(const void *ctx, void *buf, size_t len,
-			  const struct ice_ctx_ele *ctx_info);
+void __ice_pack_rxq_ctx(const struct ice_rlan_ctx *ctx, void *buf, size_t len);
+void __ice_pack_txq_ctx(const struct ice_tlan_ctx *ctx, void *buf, size_t len);
 
 #define ice_pack_rxq_ctx(rlan_ctx, buf) \
-	__ice_pack_queue_ctx((rlan_ctx), (buf), sizeof(buf), ice_rlan_ctx_info)
+	__ice_pack_rxq_ctx((rlan_ctx), (buf), sizeof(buf))
 
 #define ice_pack_txq_ctx(tlan_ctx, buf) \
-	__ice_pack_queue_ctx((tlan_ctx), (buf), sizeof(buf), ice_tlan_ctx_info)
+	__ice_pack_txq_ctx((tlan_ctx), (buf), sizeof(buf))
 
 extern struct mutex ice_global_cfg_lock_sw;
 

@@ -1375,112 +1375,51 @@ static void ice_copy_rxq_ctx_to_hw(struct ice_hw *hw, u8 *rxq_ctx,
 	}
 }
 
-/**
- * ice_ctx_pack - Pack Tx/Rx queue context data
- * @pbuf: pointer to the packed buffer
- * @pbuflen: size of the packed buffer
- * @val: pointer to storage for the unpacked data
- * @len: size of the unpacked data
- * @width: width of bits to pack
- * @lsb: least significant bit in the packed buffer
- *
- * Pack the given field of the Tx or Rx queue context into the hardware data
- * buffer. The packed contents are in full Little Endian ordering with the
- * least significant 4-byte block first.
- *
- * The only time that pack() should produce an error is due to invalid bit
- * offsets. Thus, errors are logged along with a stack dump.
- */
-static void ice_ctx_pack(void *pbuf, size_t pbuflen, const void *val,
-			 size_t len, size_t width, size_t lsb)
-{
-	size_t msb = lsb + width - 1;
-	u64 uval;
-	int err;
-
-	switch (len) {
-	case sizeof(u8):
-		uval = *((u8 *)val);
-		break;
-	case sizeof(u16):
-		uval = *((u16 *)val);
-		break;
-	case sizeof(u32):
-		uval = *((u32 *)val);
-		break;
-	case sizeof(u64):
-		uval = *((u64 *)val);
-		break;
-	default:
-		WARN_ONCE(1, "Unexpected size %zd when packing queue context",
-			  len);
-		return;
-	}
-
-	err = pack(pbuf, uval, msb, lsb, pbuflen,
-		   QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
-	if (unlikely(err)) {
-		if (err == -EINVAL) {
-			pr_err("MSB (%zd) expected to be larger than LSB (%zd)\n",
-			       msb, lsb);
-		} else if (err == -ERANGE) {
-			if ((msb - lsb + 1) > 64)
-				pr_err("Field %zd-%zd too large for 64 bits!\n",
-				       lsb, msb);
-			else
-				pr_err("Cannot store %llx inside field %zd-%zd (would truncate)\n",
-				       uval, lsb, msb);
-		}
-		dump_stack();
-	}
-}
-
-/**
- * __ice_pack_queue_ctx - Pack Tx or Rx queue context
- * @ctx: Unpacked queue context structure
- * @buf: packed buffer storage
- * @len: size of the packed buffer
- * @ctx_info: array describing the packing layout
- */
-void __ice_pack_queue_ctx(const void *ctx, void *buf, size_t len,
-			  const struct ice_ctx_ele *ctx_info)
-{
-	for (int f = 0; ctx_info[f].width; f++) {
-		const struct ice_ctx_ele *field_info = &ctx_info[f];
-		const void *field;
-
-		field = (const void *)ctx + field_info->offset;
-
-		ice_ctx_pack(buf, len, field, field_info->size_of,
-			     field_info->width, field_info->lsb);
-	}
-}
+#define ICE_CTX_FIELD(struct_name, struct_field, width, lsb) \
+	PACKED_FIELD((lsb) + (width) - 1, (lsb), struct struct_name, struct_field)
 
 /* LAN Rx Queue Context */
-const struct ice_ctx_ele ice_rlan_ctx_info[] = {
-	/* Field		Width	LSB */
-	ICE_CTX_STORE(ice_rlan_ctx, head,		13,	0),
-	ICE_CTX_STORE(ice_rlan_ctx, cpuid,		8,	13),
-	ICE_CTX_STORE(ice_rlan_ctx, base,		57,	32),
-	ICE_CTX_STORE(ice_rlan_ctx, qlen,		13,	89),
-	ICE_CTX_STORE(ice_rlan_ctx, dbuf,		7,	102),
-	ICE_CTX_STORE(ice_rlan_ctx, hbuf,		5,	109),
-	ICE_CTX_STORE(ice_rlan_ctx, dtype,		2,	114),
-	ICE_CTX_STORE(ice_rlan_ctx, dsize,		1,	116),
-	ICE_CTX_STORE(ice_rlan_ctx, crcstrip,		1,	117),
-	ICE_CTX_STORE(ice_rlan_ctx, l2tsel,		1,	119),
-	ICE_CTX_STORE(ice_rlan_ctx, hsplit_0,		4,	120),
-	ICE_CTX_STORE(ice_rlan_ctx, hsplit_1,		2,	124),
-	ICE_CTX_STORE(ice_rlan_ctx, showiv,		1,	127),
-	ICE_CTX_STORE(ice_rlan_ctx, rxmax,		14,	174),
-	ICE_CTX_STORE(ice_rlan_ctx, tphrdesc_ena,	1,	193),
-	ICE_CTX_STORE(ice_rlan_ctx, tphwdesc_ena,	1,	194),
-	ICE_CTX_STORE(ice_rlan_ctx, tphdata_ena,	1,	195),
-	ICE_CTX_STORE(ice_rlan_ctx, tphhead_ena,	1,	196),
-	ICE_CTX_STORE(ice_rlan_ctx, lrxqthresh,		3,	198),
-	ICE_CTX_STORE(ice_rlan_ctx, prefena,		1,	201),
-	{ 0 }
+static const struct packed_field_8 ice_rlan_ctx_fields[] = {
+				 /* Field		Width	LSB */
+	ICE_CTX_FIELD(ice_rlan_ctx, head,		13,	0),
+	ICE_CTX_FIELD(ice_rlan_ctx, cpuid,		8,	13),
+	ICE_CTX_FIELD(ice_rlan_ctx, base,		57,	32),
+	ICE_CTX_FIELD(ice_rlan_ctx, qlen,		13,	89),
+	ICE_CTX_FIELD(ice_rlan_ctx, dbuf,		7,	102),
+	ICE_CTX_FIELD(ice_rlan_ctx, hbuf,		5,	109),
+	ICE_CTX_FIELD(ice_rlan_ctx, dtype,		2,	114),
+	ICE_CTX_FIELD(ice_rlan_ctx, dsize,		1,	116),
+	ICE_CTX_FIELD(ice_rlan_ctx, crcstrip,		1,	117),
+	ICE_CTX_FIELD(ice_rlan_ctx, l2tsel,		1,	119),
+	ICE_CTX_FIELD(ice_rlan_ctx, hsplit_0,		4,	120),
+	ICE_CTX_FIELD(ice_rlan_ctx, hsplit_1,		2,	124),
+	ICE_CTX_FIELD(ice_rlan_ctx, showiv,		1,	127),
+	ICE_CTX_FIELD(ice_rlan_ctx, rxmax,		14,	174),
+	ICE_CTX_FIELD(ice_rlan_ctx, tphrdesc_ena,	1,	193),
+	ICE_CTX_FIELD(ice_rlan_ctx, tphwdesc_ena,	1,	194),
+	ICE_CTX_FIELD(ice_rlan_ctx, tphdata_ena,	1,	195),
+	ICE_CTX_FIELD(ice_rlan_ctx, tphhead_ena,	1,	196),
+	ICE_CTX_FIELD(ice_rlan_ctx, lrxqthresh,		3,	198),
+	ICE_CTX_FIELD(ice_rlan_ctx, prefena,		1,	201),
 };
+
+/**
+ * __ice_pack_rxq_ctx - Pack Rx queue context into a HW buffer
+ * @ctx: the Rx queue context to pack
+ * @buf: the HW buffer to pack into
+ * @len: size of the HW buffer
+ *
+ * Pack the Rx queue context from the CPU-friendly unpacked buffer into its
+ * bit-packed HW layout.
+ */
+void __ice_pack_rxq_ctx(const struct ice_rlan_ctx *ctx, void *buf, size_t len)
+{
+	CHECK_PACKED_FIELDS_20(ice_rlan_ctx_fields, ICE_RXQ_CTX_SZ);
+	WARN_ON_ONCE(len < ICE_RXQ_CTX_SZ);
+
+	pack_fields_m(buf, len, ctx, ice_rlan_ctx_fields,
+		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
+}
 
 /**
  * ice_write_rxq_ctx - Write Rx Queue context to hardware
@@ -1509,37 +1448,54 @@ int ice_write_rxq_ctx(struct ice_hw *hw, struct ice_rlan_ctx *rlan_ctx,
 }
 
 /* LAN Tx Queue Context */
-const struct ice_ctx_ele ice_tlan_ctx_info[] = {
+static const struct packed_field_8 ice_tlan_ctx_fields[] = {
 				    /* Field			Width	LSB */
-	ICE_CTX_STORE(ice_tlan_ctx, base,			57,	0),
-	ICE_CTX_STORE(ice_tlan_ctx, port_num,			3,	57),
-	ICE_CTX_STORE(ice_tlan_ctx, cgd_num,			5,	60),
-	ICE_CTX_STORE(ice_tlan_ctx, pf_num,			3,	65),
-	ICE_CTX_STORE(ice_tlan_ctx, vmvf_num,			10,	68),
-	ICE_CTX_STORE(ice_tlan_ctx, vmvf_type,			2,	78),
-	ICE_CTX_STORE(ice_tlan_ctx, src_vsi,			10,	80),
-	ICE_CTX_STORE(ice_tlan_ctx, tsyn_ena,			1,	90),
-	ICE_CTX_STORE(ice_tlan_ctx, internal_usage_flag,	1,	91),
-	ICE_CTX_STORE(ice_tlan_ctx, alt_vlan,			1,	92),
-	ICE_CTX_STORE(ice_tlan_ctx, cpuid,			8,	93),
-	ICE_CTX_STORE(ice_tlan_ctx, wb_mode,			1,	101),
-	ICE_CTX_STORE(ice_tlan_ctx, tphrd_desc,			1,	102),
-	ICE_CTX_STORE(ice_tlan_ctx, tphrd,			1,	103),
-	ICE_CTX_STORE(ice_tlan_ctx, tphwr_desc,			1,	104),
-	ICE_CTX_STORE(ice_tlan_ctx, cmpq_id,			9,	105),
-	ICE_CTX_STORE(ice_tlan_ctx, qnum_in_func,		14,	114),
-	ICE_CTX_STORE(ice_tlan_ctx, itr_notification_mode,	1,	128),
-	ICE_CTX_STORE(ice_tlan_ctx, adjust_prof_id,		6,	129),
-	ICE_CTX_STORE(ice_tlan_ctx, qlen,			13,	135),
-	ICE_CTX_STORE(ice_tlan_ctx, quanta_prof_idx,		4,	148),
-	ICE_CTX_STORE(ice_tlan_ctx, tso_ena,			1,	152),
-	ICE_CTX_STORE(ice_tlan_ctx, tso_qnum,			11,	153),
-	ICE_CTX_STORE(ice_tlan_ctx, legacy_int,			1,	164),
-	ICE_CTX_STORE(ice_tlan_ctx, drop_ena,			1,	165),
-	ICE_CTX_STORE(ice_tlan_ctx, cache_prof_idx,		2,	166),
-	ICE_CTX_STORE(ice_tlan_ctx, pkt_shaper_prof_idx,	3,	168),
-	{ 0 }
+	ICE_CTX_FIELD(ice_tlan_ctx, base,			57,	0),
+	ICE_CTX_FIELD(ice_tlan_ctx, port_num,			3,	57),
+	ICE_CTX_FIELD(ice_tlan_ctx, cgd_num,			5,	60),
+	ICE_CTX_FIELD(ice_tlan_ctx, pf_num,			3,	65),
+	ICE_CTX_FIELD(ice_tlan_ctx, vmvf_num,			10,	68),
+	ICE_CTX_FIELD(ice_tlan_ctx, vmvf_type,			2,	78),
+	ICE_CTX_FIELD(ice_tlan_ctx, src_vsi,			10,	80),
+	ICE_CTX_FIELD(ice_tlan_ctx, tsyn_ena,			1,	90),
+	ICE_CTX_FIELD(ice_tlan_ctx, internal_usage_flag,	1,	91),
+	ICE_CTX_FIELD(ice_tlan_ctx, alt_vlan,			1,	92),
+	ICE_CTX_FIELD(ice_tlan_ctx, cpuid,			8,	93),
+	ICE_CTX_FIELD(ice_tlan_ctx, wb_mode,			1,	101),
+	ICE_CTX_FIELD(ice_tlan_ctx, tphrd_desc,			1,	102),
+	ICE_CTX_FIELD(ice_tlan_ctx, tphrd,			1,	103),
+	ICE_CTX_FIELD(ice_tlan_ctx, tphwr_desc,			1,	104),
+	ICE_CTX_FIELD(ice_tlan_ctx, cmpq_id,			9,	105),
+	ICE_CTX_FIELD(ice_tlan_ctx, qnum_in_func,		14,	114),
+	ICE_CTX_FIELD(ice_tlan_ctx, itr_notification_mode,	1,	128),
+	ICE_CTX_FIELD(ice_tlan_ctx, adjust_prof_id,		6,	129),
+	ICE_CTX_FIELD(ice_tlan_ctx, qlen,			13,	135),
+	ICE_CTX_FIELD(ice_tlan_ctx, quanta_prof_idx,		4,	148),
+	ICE_CTX_FIELD(ice_tlan_ctx, tso_ena,			1,	152),
+	ICE_CTX_FIELD(ice_tlan_ctx, tso_qnum,			11,	153),
+	ICE_CTX_FIELD(ice_tlan_ctx, legacy_int,			1,	164),
+	ICE_CTX_FIELD(ice_tlan_ctx, drop_ena,			1,	165),
+	ICE_CTX_FIELD(ice_tlan_ctx, cache_prof_idx,		2,	166),
+	ICE_CTX_FIELD(ice_tlan_ctx, pkt_shaper_prof_idx,	3,	168),
 };
+
+/**
+ * __ice_pack_txq_ctx - Pack Tx queue context into a HW buffer
+ * @ctx: the Tx queue context to pack
+ * @buf: the HW buffer to pack into
+ * @len: size of the HW buffer
+ *
+ * Pack the Tx queue context from the CPU-friendly unpacked buffer into its
+ * bit-packed HW layout.
+ */
+void __ice_pack_txq_ctx(const struct ice_tlan_ctx *ctx, void *buf, size_t len)
+{
+	CHECK_PACKED_FIELDS_27(ice_tlan_ctx_fields, ICE_TXQ_CTX_SZ);
+	WARN_ON_ONCE(len < ICE_TXQ_CTX_SZ);
+
+	pack_fields_m(buf, len, ctx, ice_tlan_ctx_fields,
+		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
+}
 
 /* Sideband Queue command wrappers */
 
