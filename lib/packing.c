@@ -52,8 +52,8 @@ static size_t calculate_box_addr(size_t box, size_t len, u8 quirks)
 	return offset_of_group + offset_in_group;
 }
 
-static void __pack(void *pbuf, u64 uval, size_t startbit, size_t endbit,
-		   size_t pbuflen, u8 quirks)
+void __pack(void *pbuf, u64 uval, size_t startbit, size_t endbit,
+	    size_t pbuflen, u8 quirks)
 {
 	/* Logical byte indices corresponding to the
 	 * start and end of the field.
@@ -130,6 +130,7 @@ static void __pack(void *pbuf, u64 uval, size_t startbit, size_t endbit,
 		((u8 *)pbuf)[box_addr] |= pval;
 	}
 }
+EXPORT_SYMBOL(__pack);
 
 /**
  * pack - Pack u64 number into bitfield of buffer.
@@ -169,8 +170,8 @@ int pack(void *pbuf, u64 uval, size_t startbit, size_t endbit, size_t pbuflen,
 }
 EXPORT_SYMBOL(pack);
 
-static void __unpack(const void *pbuf, u64 *uval, size_t startbit,
-		     size_t endbit, size_t pbuflen, u8 quirks)
+void __unpack(const void *pbuf, u64 *uval, size_t startbit, size_t endbit,
+	      size_t pbuflen, u8 quirks)
 {
 	/* Logical byte indices corresponding to the
 	 * start and end of the field.
@@ -242,6 +243,7 @@ static void __unpack(const void *pbuf, u64 *uval, size_t startbit,
 		*uval |= pval;
 	}
 }
+EXPORT_SYMBOL(__unpack);
 
 /**
  * unpack - Unpack u64 number from packed buffer.
