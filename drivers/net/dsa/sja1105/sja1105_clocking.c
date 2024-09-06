@@ -101,7 +101,7 @@ struct sja1105_cgu_mii_ctrl {
 	u8 pd;
 };
 
-static const struct packed_field sja1105_cgu_idiv_fields[] = {
+static const struct packed_field_8 sja1105_cgu_idiv_fields[] = {
 	PACKED_FIELD(28, 24, struct sja1105_cgu_idiv, clksrc),
 	PACKED_FIELD(11, 11, struct sja1105_cgu_idiv, autoblock),
 	PACKED_FIELD(5, 2, struct sja1105_cgu_idiv, idiv),
@@ -137,7 +137,7 @@ static int sja1105_cgu_idiv_config(struct sja1105_private *priv, int port,
 				 SJA1105_SIZE_CGU_CMD);
 }
 
-static const struct packed_field sja1105_cgu_mii_ctrl_fields[] = {
+static const struct packed_field_8 sja1105_cgu_mii_ctrl_fields[] = {
 	PACKED_FIELD(28, 24, struct sja1105_cgu_mii_ctrl, clksrc),
 	PACKED_FIELD(11, 11, struct sja1105_cgu_mii_ctrl, autoblock),
 	PACKED_FIELD(0, 0, struct sja1105_cgu_mii_ctrl, pd),
@@ -322,7 +322,7 @@ static int sja1105_mii_clocking_setup(struct sja1105_private *priv, int port,
 	return 0;
 }
 
-static const struct packed_field sja1105_cgu_pll_ctrl_fields[] = {
+static const struct packed_field_8 sja1105_cgu_pll_ctrl_fields[] = {
 	PACKED_FIELD(28, 24, struct sja1105_cgu_pll_ctrl, pllclksrc),
 	PACKED_FIELD(23, 16, struct sja1105_cgu_pll_ctrl, msel),
 	PACKED_FIELD(11, 11, struct sja1105_cgu_pll_ctrl, autoblock),
@@ -372,7 +372,7 @@ static int sja1105_cgu_rgmii_tx_clk_config(struct sja1105_private *priv,
 }
 
 /* AGU */
-static const struct packed_field sja1105_cfg_pad_mii_fields[] = {
+static const struct packed_field_8 sja1105_cfg_pad_mii_fields[] = {
 	PACKED_FIELD(28, 27, struct sja1105_cfg_pad_mii, d32_os),
 	PACKED_FIELD(26, 26, struct sja1105_cfg_pad_mii, d32_ih),
 	PACKED_FIELD(25, 24, struct sja1105_cfg_pad_mii, d32_ipud),
@@ -457,7 +457,7 @@ static int sja1105_cfg_pad_rx_config(struct sja1105_private *priv, int port)
 				 SJA1105_SIZE_CGU_CMD);
 }
 
-static const struct packed_field sja1105_cfg_pad_mii_id_fields[] = {
+static const struct packed_field_8 sja1105_cfg_pad_mii_id_fields[] = {
 	PACKED_FIELD(15, 15, struct sja1105_cfg_pad_mii_id, rxc_stable_ovr),
 	PACKED_FIELD(14, 10, struct sja1105_cfg_pad_mii_id, rxc_delay),
 	PACKED_FIELD(9, 9, struct sja1105_cfg_pad_mii_id, rxc_bypass),
@@ -468,7 +468,7 @@ static const struct packed_field sja1105_cfg_pad_mii_id_fields[] = {
 	PACKED_FIELD(0, 0, struct sja1105_cfg_pad_mii_id, txc_pd),
 };
 
-static const struct packed_field sja1110_cfg_pad_mii_id_fields[] = {
+static const struct packed_field_8 sja1110_cfg_pad_mii_id_fields[] = {
 	PACKED_FIELD(26, 26, struct sja1105_cfg_pad_mii_id, rxc_stable_ovr),
 	PACKED_FIELD(25, 21, struct sja1105_cfg_pad_mii_id, rxc_delay),
 	PACKED_FIELD(20, 18, struct sja1105_cfg_pad_mii_id, rxc_range),
@@ -822,7 +822,7 @@ int sja1105_clocking_setup(struct sja1105_private *priv)
 	return 0;
 }
 
-static const struct packed_field sja1110_cgu_outclk_fields[] = {
+static const struct packed_field_8 sja1110_cgu_outclk_fields[] = {
 	PACKED_FIELD(27, 24, struct sja1110_cgu_outclk, clksrc),
 	PACKED_FIELD(11, 11, struct sja1110_cgu_outclk, autoblock),
 	PACKED_FIELD(0, 0, struct sja1110_cgu_outclk, pd),

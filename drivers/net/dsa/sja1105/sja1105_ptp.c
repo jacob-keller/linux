@@ -58,7 +58,7 @@ enum sja1105_ptp_clk_mode {
 #define ptp_data_to_sja1105(d) \
 		container_of((d), struct sja1105_private, ptp_data)
 
-static const struct packed_field sja1105et_ptp_cmd_fields[] = {
+static const struct packed_field_8 sja1105et_ptp_cmd_fields[] = {
 	PACKED_FIELD(31, 31, struct sja1105_ptp_cmd, valid),
 	PACKED_FIELD(30, 30, struct sja1105_ptp_cmd, ptpstrtsch),
 	PACKED_FIELD(29, 29, struct sja1105_ptp_cmd, ptpstopsch),
@@ -69,7 +69,7 @@ static const struct packed_field sja1105et_ptp_cmd_fields[] = {
 	PACKED_FIELD(0, 0, struct sja1105_ptp_cmd, ptpclkadd),
 };
 
-static const struct packed_field sja1105pqrs_ptp_cmd_fields[] = {
+static const struct packed_field_8 sja1105pqrs_ptp_cmd_fields[] = {
 	PACKED_FIELD(31, 31, struct sja1105_ptp_cmd, valid),
 	PACKED_FIELD(30, 30, struct sja1105_ptp_cmd, ptpstrtsch),
 	PACKED_FIELD(29, 29, struct sja1105_ptp_cmd, ptpstopsch),

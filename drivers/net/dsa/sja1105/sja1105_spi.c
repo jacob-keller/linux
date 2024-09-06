@@ -13,7 +13,7 @@ struct sja1105_chunk {
 	u64	reg_addr;
 };
 
-static const struct packed_field sja1105_spi_message_fields[] = {
+static const struct packed_field_8 sja1105_spi_message_fields[] = {
 	PACKED_FIELD(31, 31, struct sja1105_spi_message, access),
 	PACKED_FIELD(30, 25, struct sja1105_spi_message, read_count),
 	PACKED_FIELD(24, 4, struct sja1105_spi_message, address),
